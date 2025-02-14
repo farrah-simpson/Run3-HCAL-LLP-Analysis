@@ -9,17 +9,16 @@ import uproot
 #from models import Classifier2DGrad as Classifier2D
 from models import Classifier2DCNN as Classifier2D
 from models import MultiInput
-from generator import RegionETGenerator
+#from generator import RegionETGenerator
 from sklearn.model_selection import train_test_split
 from tensorflow import data
 import matplotlib.pyplot as plt
-from drawing import Draw
+#from drawing import Draw
 import pandas as pd
 from sklearn.utils import shuffle
 from sklearn.preprocessing import StandardScaler
 from models import Classifier3DCNN as Classifier3D
 from sklearn.metrics import roc_curve, auc
-import pandas as pd
 from PIL import Image
 import matplotlib.colors as mcolors
 from tensorflow.keras.callbacks import EarlyStopping
@@ -49,7 +48,7 @@ class DataProcessor:
                     print("here first")
                     images = np.array(f['CaloRegions'])
                     print("here 2")
-                    #images = images[:, :10, :10,:]       
+                    #images = images[:27564, :, :,:]       
                     print("here")
                     if self.multi:
                         variables = tuple()
@@ -84,11 +83,12 @@ class DataProcessor:
         bkg_numerical = tuple()
         
         if self.bkg_files is not None:
+            print("there is background")
             for bkg_file in self.bkg_files:
                 print("Opening ", bkg_file)
                 with h5py.File(bkg_file, "r") as f:
                     images = np.array(f['CaloRegions'])
-                    #images = images[:, :10, :10,:]
+                    #images = images[:27564, :, :,:]
                     variables = tuple()                    
                     if self.multi:
                         if "eta" in self.features:
@@ -115,23 +115,24 @@ class DataProcessor:
                 print("All bkg num", X_num_bkg.shape)
         
         if self.sig_files is None:
+            print("testing no signal...")
             self.X = X_bkg
             self.y = np.zeros(X_bkg.shape[0])
         
         elif self.bkg_files is None:
+            print("testing no background...")
             self.X = X_sig
             self.y = np.ones(X_sig.shape[0])
             
         else:
+            print("trying to concatenate...")
             self.X = np.concatenate((X_sig, X_bkg)) # all data
+            print("trying to concatenate 2...")
             self.y = np.concatenate((np.ones(X_sig.shape[0]), np.zeros(X_bkg.shape[0]) ))
             
         
         #self.X = self.X[:, :10, :10] # cutting all the data once it's all aggregated 
-        
-                    
-        
-        
+      
         print("All data: ", self.X.shape)
         if self.multi:
             self.X_num = np.concatenate((X_num_sig, X_num_bkg))
@@ -149,7 +150,7 @@ class DataProcessor:
             fig.savefig(f"{name}2D.png")
         else: 
             fig, ax = plt.subplots(2, 4)
-            for i in range(4):
+            for i in range(4): #this depth is not correct for the new h5 files?
                 ax[0, i].imshow(img[:,:,i], norm=norm1, label=f"depth {i+1}")
                 ax[1, i].imshow(img_flip[:,:,i], norm=norm2, label=f"depth {i +1}")
             fig.savefig(f"{name}3D.png")
@@ -170,12 +171,12 @@ class DataProcessor:
         self.check_orientation(self.X[0], X_b[0], "bot")
         
         
-        # ----- temporary changes -----
+        # ----- Add more images to the dataset -----
         
         self.X = np.concatenate((self.X, X_h, X_v, X_b))
         self.y = np.concatenate((self.y, self.y, self.y, self.y))
         
-        # looking how it performs
+        # looking how it performs-- comment out later
         if self.aug_variable == 10:
             self.X = np.concatenate((self.X, X_h, X_v, X_b))
             self.y = np.concatenate((self.y, self.y, self.y, self.y))
@@ -186,13 +187,13 @@ class DataProcessor:
             
         elif self.aug_variable == 12:
             self.X = X_v
-            print("Vertical Selectio")
+            print("Vertical Selection")
         
         elif self.aug_variable == 13:
             self.X = X_b
             print("Diagonal Selection")
             
-        #self.aug_variable +=1
+        self.aug_variable +=1
         
         if self.multi:
             self.X_num = np.concatenate((self.X_num, self.X_num, self.X_num, self.X_num))
@@ -219,7 +220,7 @@ class DataProcessor:
         if augment:
             self.augment_data()
         if not self.testing:  
-            #print("shuffle")
+            print("shuffling!!!")
             self.X, self.y = shuffle(self.X, self.y, random_state=42)
         print("Total Data: ", self.y.shape)
         
@@ -280,7 +281,7 @@ class ModelHandler:
                                 
         self.data = (X_test, y_test, predictions)
         self.roc_data = (y_test, preds[:, 1])
-        print("preds: ", preds[:10]) 
+        print("preds: ", preds)#[:10]) 
         print("predictions: ", predictions[:10])
         print("labels: ", y_test[:10])
         
@@ -413,62 +414,76 @@ class ModelHandler:
         index = np.where( fpr <= 1e-4)
         print("TPR", tpr[index][-1], "at FPR", fpr[index][-1])
     
-    #--------WIP--------
     def write_to_root(self, root_file):
         # should be evaluated one at a time
         events = uproot.open(root_file)['JetHCalRechits']# these files aren't per-event so doesn't make sense
+        #numentries = events.numentries
+
+        #scores = np.array([],dtype=np.float64)
+
         df = events.arrays(library="np")
         
-        labels, scores = self.roc_data
+        #for entry in events:#.iterate("*"),entrysteps=1000):
+
+        labels, score = self.roc_data
+        print("score is: ", score)
         
-        df['CNN3D_scores'] = scores
+        #scores = np.append(scores, score)
+        #print("array scores is", scores)
+
+        df['CNN3D_scores'] = score
         
-        output_file = "scores_added_350_80.root"
+        output_file = "scores_added_350_160_v2-2mass.root"
         with uproot.recreate(output_file) as f:
-            f["JetHCalRechits"] =  {key : df[key] for key in df.keys()}
+            f['JetHCalRechits'] =  {key : df[key] for key in df.keys()}
             
         print("Wrote to ROOT File")
                                 
+    def scores(self):
+        return self.roc_data
                                 
 def main(evaluate=False):
-    
-    filepaths = [ {"sig_files": ['Inputs/h5/v3j1/jets_ggH_HToSSTobbbb_MH-350_MS-160_CTau10000.h5'], "bkg_files": ['Inputs/h5/v3j1/jets_Run2023C-EXOLLPJetHCAL-PromptReco-v1.h5']  }, 
-                 
-                 {"sig_files": ['Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH350_MS160_CTau500_mod.h5',
-                     'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH250_MS120_CTau500_mod.h5', 
-                     'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH125_MS50_CTau500_mod.h5',
-                     'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH125_MS125_CTau500_mod.h5',
-                     'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH350_MS80_CTau500_mod.h5'
+
+    root_file_name = 'jets_Run2023C-EXOLLPJetHCAL-PromptReco_output_1-100'
+    filepaths = [ 
+#            {"sig_files": ['Inputs/Jet3Dh5/'+root_file_name+'_mod.h5'], "bkg_files": []  }] 
+                 {"sig_files": [
+                     #'Inputs/Jet3Dh5/jetntuple_ggH_HToSSTobbbb_HToSSTo4B_MH125_MS50_CTau3000_output_1_mod.h5',
+                     'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH350_MS160_CTau500_mod.h5',
+                     #'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH250_MS120_CTau500_mod.h5', 
+                     #'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH125_MS50_CTau500_mod.h5',
+                     #'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH125_MS125_CTau500_mod.h5',
+                     #'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH350_MS80_CTau500_mod.h5'
                                ], "bkg_files": [#'Inputs/Jet3Dh5/jetntuple_Run2023C-EXOLLPJetHCAL-PromptReco-v1_partial.h5'#,
-                                                'Inputs/Jet3Dh5/HADD_Run2023D-EXOLLPJetHCAL-PromptReco-v1_mod.h5',
-                     #'Inputs/Jet3Dh5/HADD_Run2023D-EXOLLPJetHCAL-PromptReco-v2.h5' 
-                     #,'Inputs/Jet3Dh5/HADD_bkg_partial.h5' 
-                                               #
+#                                                'Inputs/Jet3Dh5/jetntuple_Run2023C-EXOLLPJetHCAL-PromptReco-v1_partial_mod.h5'
+                                                #'Inputs/Jet3Dh5/HADD_Run2023D-EXOLLPJetHCAL-PromptReco-v1_mod.h5',
+                                                #'Inputs/Jet3Dh5/HADD_Run2023D-EXOLLPJetHCAL-PromptReco-v2.h5' 
+                                                #,'Inputs/Jet3Dh5/HADD_bkg_partial.h5' 
+                                               'Inputs/Jet3Dh5/HADD_Run2023C-EXOLLPJetHCAL-PromptReco-v2_mod.h5'
                  ]}]
     
-    #root_file = "Inputs/hadded/HADD_jetntuple_ggH_HToSSTo4B_MH350_MS80_CTau500.root"
     fig, roc_ax = plt.subplots()
     roc_ax.set_xlabel("False Positive Rate")
     roc_ax.set_ylabel("True Positive Rate")
-    dim = 2
+    dim = 3
     cut = 30000
     if not evaluate:   
         classifier2 = Classifier2D().get_model() 
         classifier3 = Classifier3D().get_model()
-        classifiers = [classifier2, classifier3] 
+        classifiers = [classifier3] 
         print(classifier3.summary())
+        print(classifier2.summary())
         params = {3: 0.0010967517265048784, 2: 0.0008168928172943063}
         
         for classifier, filepath in zip(classifiers, filepaths):
-            if dim == 2:
-                dim+=1 
-                continue
             print("Entered Loop: Train Mode")
             processor = DataProcessor(filepath['sig_files'], filepath['bkg_files'], dim=dim, testing=False)
             print("Got Data")
             _, X_TEST, _, y_TEST = processor.get_data(augment=False)
+            print("Doing augment")
             X_train, _, y_train, _ = processor.get_data(augment=True)
-            handler = ModelHandler(model=classifier, dim=dim, evaluate=False, model_name=f"classifier3D-AllMass-initialized.keras")
+            print("Finished getting data (and augment)")
+            handler = ModelHandler(model=classifier, dim=dim, evaluate=False, model_name=f"classifier3D-MH350_MS160_CTau500-initialized_Cv2_test4.keras")
             handler.train((X_train, y_train))
             print("Trained")
             handler.test((X_TEST, y_TEST))
@@ -476,13 +491,13 @@ def main(evaluate=False):
             #gradcam = handler.plot_gradcam2D if dim==2 else handler.plot_gradcam3D                      
             #gradcam()
             handler.plot_roc(roc_ax)                     
-            dim += 1
+            #dim += 1 #what is this for? Currently functioning with 1 filepath maybe for moving between 2DCNN and 3DCNN?
             handler.save()
             
         roc_ax.legend(["3DCNN"])
         roc_ax.grid(True)
-        roc_ax.set_title("All Mass Combinations")
-        fig.savefig("ROC_plt.png")
+        roc_ax.set_title("MH350_MS160_CTau500 with Run2023C v2 ")
+        fig.savefig("ROC_plt_v-MH350_MS160_CTau500_Cv2.png")
         
         #adding in the training of the multi-input
         #classifier = MultiInput(num_features=3).get_model()
@@ -495,28 +510,52 @@ def main(evaluate=False):
         #handler.save()
       
     else:
-        classifier2 = tf.keras.models.load_model("models/classifier2d.keras")
-        classifier3 = tf.keras.models.load_model("models/classifier3D-AllMass.keras")
-        classifiers = [classifier2, classifier3]
-        for classifier, filepath in zip(classifiers, filepaths):
-            if dim == 2:
-                dim+=1
-                continue
-            print("Entered Loop: Eval Mode")
-            processor = DataProcessor(filepath['sig_files'], filepath['bkg_files'], dim=dim, testing=True)
-            print("Got Data")
-            data_test = processor.get_data(augment=True) #returns the full dataset unshuffled so that the scores can be inputted back
-            handler = ModelHandler(model=classifier, dim=dim, evaluate=True)
-            handler.test(data_test)
-            print("Tested")
-            #gradcam = handler.plot_gradcam2D if dim==2 else handler.plot_gradcam3D                      
-            #gradcam()                     
-            handler.plot_roc(roc_ax)
-            #if dim == 3:
-               # handler.write_to_root(root_file)
-            #dim += 1
-        
-        #classifier = tf.keras.models.load_model("models/multiInput.keras")
+        #classifier2 = tf.keras.models.load_model("models/classifier2d.keras")
+        classifier3 = tf.keras.models.load_model("models/classifier3D-TwoMass-initialized.keras")
+        classifierMH350_MS80_CTau500 = tf.keras.models.load_model("models/classifier3D-MH350_MS80_CTau500-initialized.keras")
+        classifierMH350_MS160_CTau500 = tf.keras.models.load_model("models/classifier3D-MH350_MS160_CTau500-initialized.keras")
+        classifierMH250_MS120_CTau500 = tf.keras.models.load_model("models/classifier3D-MH250_MS120_CTau500-initialized.keras")
+        classifierMH125_MS50_CTau500 = tf.keras.models.load_model("models/classifier3D-MH125_MS50_CTau500-initialized.keras")
+        classifierMH125_MS125_CTau500 = tf.keras.models.load_model("models/classifier3D-MH125_MS125_CTau500-initialized.keras")
+
+        root_file = "ntuples/"+root_file_name+".root"
+        output_file = "output/"+root_file_name+"-v4-scores_added.root"
+
+        classifiers = [classifierMH350_MS80_CTau500,classifier3,classifierMH350_MS160_CTau500,classifierMH250_MS120_CTau500,classifierMH125_MS50_CTau500,classifierMH125_MS125_CTau500]
+        name = ['classifierMH350_MS80_CTau500','classifier3','classifierMH350_MS160_CTau500','classifierMH250_MS120_CTau500','classifierMH125_MS50_CTau500','classifierMH125_MS125_CTau500']
+        events = uproot.open(root_file)['JetHCalRechits']# these files aren't per-event so doesn't make sense
+        df = events.arrays(library="np")
+ 
+        i = 0
+        for classifier in classifiers:
+                print("Entered Loop: Eval Mode")
+                processor = DataProcessor(filepaths[0]['sig_files'], dim=dim, testing=True) #we are only evaluating the input root file's h5 file rename sig_files here to input_file
+                print("Got Data")
+                data_test = processor.get_data(augment=False)#True) #returns the full dataset unshuffled so that the scores can be inputted back
+                handler = ModelHandler(model=classifier, dim=dim, evaluate=True)
+                handler.test(data_test)
+                print("Tested")
+                #gradcam = handler.plot_gradcam2D if dim==2 else handler.plot_gradcam3D                      
+                #gradcam()                     
+                ##handler.plot_roc(roc_ax)
+                #if dim == 3:
+                #handler.write_to_root(root_file)
+                #dim += 1
+       
+                labels, score = handler.scores()
+                print("score is: ", score)
+                score_key = 'CNN3D_'+name[i]
+                print(score_key)
+                df[score_key] = score
+                i+=1
+                print(df.keys())
+
+        with uproot.recreate(output_file) as f:
+            f['JetHCalRechits'] =  {key : df[key] for key in df.keys()}
+            
+        print("Wrote to ROOT File")
+             
+            #classifier = tf.keras.models.load_model("models/multiInput.keras")
         #processor = DataProcessor(filepaths[1]['sig_files'], filepaths[1]['bkg_files'], dim=3, test=True, multi=True)
         #data_test = processor.get_data()
         #handler = ModelHandler(model=classifier, dim=3, evaluate=True, multi=True)
@@ -525,9 +564,9 @@ def main(evaluate=False):
         #ROC_data = pd.read_csv("../../Run3-HCAL-LLP-Analysis/TMVAStudies/roc_binary_data.csv")
         #roc_ax.semilogx(np.array(ROC_data['FPR']), np.array(ROC_data['TPR']))
         #roc_ax.set_title("ROC.png")
-        roc_ax.legend(["3DCNN"])
-        roc_ax.set_title("Evaluated on All Masses, Augmented Dataset")
-        fig.savefig("ROC_eval_plt.png")
+        ##roc_ax.legend(["3DCNN"])
+        ##roc_ax.set_title("Evaluated on All Masses, Augmented Dataset")
+        ##fig.savefig("ROC_eval_plt.png")
         
         
         
@@ -541,15 +580,16 @@ def evaluate_mass_trainings():
                      'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH350_MS80_CTau500_mod.h5'
                                ]
     
-    model_names = ['classifier3d-350-160.keras', 'classifier3d-250-120.keras', 'classifier3d-125-50.keras', 'classifier3d-125-15.keras','classifier3d-350-80.keras']
-    
+#    model_names = ['classifier3D-MH350_MS80_CTau500-initialized.keras', 'classifier3D-MH350_MS160_CTau500-initialized.keras', 'classifier3D-MH250_MS120_CTau500-initialized.keras', 'classifier3D-MH125_MS50_CTau500-initialized.keras','classifier3D-MH125_MS125_CTau500-initialized.keras']
+    model_names = ['classifier3D-MH350_MS160_CTau500-initialized_Cv2_test1.keras']  
     # constant
-    background = [#'Inputs/Jet3Dh5/jetntuple_Run2023C-EXOLLPJetHCAL-PromptReco-v1_partial.h5'
-        'Inputs/Jet3Dh5/HADD_Run2023D-EXOLLPJetHCAL-PromptReco-v1_mod.h5',
+    background = ['Inputs/Jet3Dh5/HADD_Run2023C-EXOLLPJetHCAL-PromptReco-v2_mod.h5'#'Inputs/Jet3Dh5/jetntuple_Run2023C-EXOLLPJetHCAL-PromptReco-v1_partial.h5'
+        #'Inputs/Jet3Dh5/HADD_Run2023D-EXOLLPJetHCAL-PromptReco-v1_mod.h5',
         #'Inputs/Jet3Dh5/HADD_Run2023D-EXOLLPJetHCAL-PromptReco-v2.h5',
                  ]
     
-    names = ['MH350-MS160', 'MH250-MS120', 'MH125-MS50', 'MH125-MS15', 'MH350-MS80']
+    names = ['MH350_MS160_CTau500', 'MH250_MS120_CTau500', 'MH125_MS50_CTau500', 'MH125_MS125_CTau500', 'MH350_MS80_CTau500']
+    #names = ['MH350_MS160_CTau500']
     
     
     for index, model3d  in enumerate(model_names):
@@ -579,14 +619,14 @@ def evaluate_mass_trainings():
             ax1.set_xlabel("False Positive Rate")
             ax1.set_ylabel("True Positive Rate")
             ax1.legend(names)
-            ax1.set_title(f"Trained on {names[index]} with 3DCNN")
+            ax1.set_title(f"Trained on {names[index]} with 3DCNN using Run2023Cv2")
             #ax2.set_xlabel("False Positive Rate")
             #ax2.set_ylabel("True Positive Rate")
             #ax2.legend(names)
             #ax2.set_title(f"Trained on {names[index]} with multi-input")
             
         plt.tight_layout()       
-        fig1.savefig(f"Trained{names[index]}-3DCNN.png")
+        fig1.savefig(f"Trained{names[index]}-3DCNN_Cv2_test1.png")
         #fig2.savefig(f"Trained{names[index]}-MultiInput.png")
         plt.close(fig1)
         #plt.close(fig2)
@@ -662,6 +702,9 @@ def verify_augmented():
                              
         
 if __name__ == "__main__":
-    #evaluate_mass_trainings()
-    main()
+#    evaluate_mass_trainings()
+#    main(evaluate=True)
+#    main()
+    evaluate_mass_trainings()
+
     #verify_augmented()
