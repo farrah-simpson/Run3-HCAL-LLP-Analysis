@@ -6,6 +6,7 @@ import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 import uproot
+#import ROOT
 #from models import Classifier2DGrad as Classifier2D
 from models import Classifier2DCNN as Classifier2D
 from models import MultiInput
@@ -22,7 +23,7 @@ from sklearn.metrics import roc_curve, auc
 from PIL import Image
 import matplotlib.colors as mcolors
 from tensorflow.keras.callbacks import EarlyStopping
-
+import argparse
 
 class DataProcessor:
     def __init__(self, sig_files=None, bkg_files=None, dim=2, testing=False, multi=False, features="etaptpv"):
@@ -255,9 +256,9 @@ class ModelHandler:
                 self.model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=lr), loss="sparse_categorical_crossentropy")
             
                 
-    def train(self, data_train, batch=512, val=0.2, epochs=10):
+    def train(self, data_train, batch=512, val=0.2, epochs=25):
         
-        early_stopping = EarlyStopping(monitor='val_loss', patience=2, restore_best_weights=True)
+        early_stopping = EarlyStopping(monitor='val_loss', patience=4, restore_best_weights=True)
         
         if self.multi:
             X_train, X_num_train, y_train = data_train
@@ -414,60 +415,143 @@ class ModelHandler:
         index = np.where( fpr <= 1e-4)
         print("TPR", tpr[index][-1], "at FPR", fpr[index][-1])
     
-    def write_to_root(self, root_file):
-        # should be evaluated one at a time
-        events = uproot.open(root_file)['JetHCalRechits']# these files aren't per-event so doesn't make sense
-        #numentries = events.numentries
-
-        #scores = np.array([],dtype=np.float64)
-
-        df = events.arrays(library="np")
-        
-        #for entry in events:#.iterate("*"),entrysteps=1000):
-
-        labels, score = self.roc_data
-        print("score is: ", score)
-        
-        #scores = np.append(scores, score)
-        #print("array scores is", scores)
-
-        df['CNN3D_scores'] = score
-        
-        output_file = "scores_added_350_160_v2-2mass.root"
-        with uproot.recreate(output_file) as f:
-            f['JetHCalRechits'] =  {key : df[key] for key in df.keys()}
-            
-        print("Wrote to ROOT File")
+#    def write_to_root(self, root_file):
+#        # should be evaluated one at a time
+#        events = uproot.open(root_file)['DisplacedHcalJets/Events']# these files aren't per-event so doesn't make sense
+#        #numentries = events.numentries
+#
+#        #scores = np.array([],dtype=np.float64)
+#
+#        df = events.arrays(library="np")
+#        
+#        #for entry in events:#.iterate("*"),entrysteps=1000):
+#
+#        labels, score = self.roc_data
+#        print("score is: ", score)
+#        
+#        #scores = np.append(scores, score)
+#        #print("array scores is", scores)
+#
+#        df['CNN3D_scores'] = score
+#        
+#        output_file = "scores_added_350_160_v2-2mass.root"
+#        with uproot.recreate(output_file) as f:
+#            f[''] =  {key : df[key] for key in df.keys()}
+#            
+#        print("Wrote to ROOT File")
                                 
     def scores(self):
         return self.roc_data
                                 
 def main(evaluate=False):
 
-    root_file_name = 'jets_Run2023C-EXOLLPJetHCAL-PromptReco_output_1-100'
-    filepaths = [ 
-#            {"sig_files": ['Inputs/Jet3Dh5/'+root_file_name+'_mod.h5'], "bkg_files": []  }] 
-                 {"sig_files": [
-                     #'Inputs/Jet3Dh5/jetntuple_ggH_HToSSTobbbb_HToSSTo4B_MH125_MS50_CTau3000_output_1_mod.h5',
-                     'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH350_MS160_CTau500_mod.h5',
-                     #'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH250_MS120_CTau500_mod.h5', 
-                     #'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH125_MS50_CTau500_mod.h5',
-                     #'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH125_MS125_CTau500_mod.h5',
-                     #'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH350_MS80_CTau500_mod.h5'
-                               ], "bkg_files": [#'Inputs/Jet3Dh5/jetntuple_Run2023C-EXOLLPJetHCAL-PromptReco-v1_partial.h5'#,
-#                                                'Inputs/Jet3Dh5/jetntuple_Run2023C-EXOLLPJetHCAL-PromptReco-v1_partial_mod.h5'
-                                                #'Inputs/Jet3Dh5/HADD_Run2023D-EXOLLPJetHCAL-PromptReco-v1_mod.h5',
-                                                #'Inputs/Jet3Dh5/HADD_Run2023D-EXOLLPJetHCAL-PromptReco-v2.h5' 
-                                                #,'Inputs/Jet3Dh5/HADD_bkg_partial.h5' 
-                                               'Inputs/Jet3Dh5/HADD_Run2023C-EXOLLPJetHCAL-PromptReco-v2_mod.h5'
-                 ]}]
-    
     fig, roc_ax = plt.subplots()
     roc_ax.set_xlabel("False Positive Rate")
     roc_ax.set_ylabel("True Positive Rate")
     dim = 3
     cut = 30000
-    if not evaluate:   
+    
+    #args = parseArgs()
+    #parser = argparse.ArgumentParser(description="inputting CNN scores in ntuples")
+    #parser.add_argument("-i", "--input", default=None, help="the input files to be processed")
+    root_file = "output_29.root"#"root://cmsxrootd.fnal.gov///store/user/gkopp/HToSSTo4B_MH350_MS80_CTau500/LLP_MC_350__20231129_104033/231129_094141/0000/output_29.root"#args.input
+
+    if evaluate:
+    #    input_files = args.input
+    #    output_filepath = args.output
+    #    with open(input_files, "r") as f: 
+    #        for root_file in f:
+    #            root_file = root_file.strip()  # Removes any leading/trailing whitespace/newlines
+
+        root_file_name = "HToSSTo4B_MH350_MS80_CTau500_output_29"#root_file.strip(".root") 
+        filepaths = [
+                        {"input_file":['Inputs/Jet3Dh5/jetntuple_ggH_HToSSTobbbb_HToSSTo4B_MH350_MS80_CTau500_output_29_mod.h5']}]#'/afs/cern.ch/work/f/fsimpson/public/forKat/'+root_file_name+'_mod.h5']}]
+        #classifier2 = tf.keras.models.load_model("models/classifier2d.keras")
+        classifier3 = tf.keras.models.load_model("models/classifier3D-all_CTau500-initialized_it1.keras")
+        classifier3_two = tf.keras.models.load_model("models/classifier3D-highandlow_CTau500-initialized.keras")
+        #classifierMH350_MS160_CTau500 = tf.keras.models.load_model("models/classifier3D-MH350_MS160_CTau500-initialized.keras")
+        #classifierMH250_MS120_CTau500 = tf.keras.models.load_model("models/classifier3D-MH250_MS120_CTau500-initialized.keras")
+        #classifierMH125_MS50_CTau500 = tf.keras.models.load_model("models/classifier3D-MH125_MS50_CTau500-initialized.keras")
+        #classifierMH125_MS125_CTau500 = tf.keras.models.load_model("models/classifier3D-MH125_MS125_CTau500-initialized.keras")
+
+        output_file = root_file_name+"-v4-scores_added.root"
+
+        classifiers = [classifier3,classifier3_two]
+        name = ['classifier3','classifier3_two']
+        events = uproot.open(root_file)['DisplacedHcalJets/Events']# these files aren't per-event so doesn't make sense
+        df = events.arrays(library="np")
+ 
+        i = 0
+        for classifier in classifiers:
+                print("Entered Loop: Eval Mode")
+                processor = DataProcessor(filepaths[0]['input_file'], dim=dim, testing=True) #we are only evaluating the input root file's h5 file rename sig_files here to input_file
+                print("Got Data")
+                data_test = processor.get_data(augment=False)#True) #returns the full dataset unshuffled so that the scores can be inputted back
+                handler = ModelHandler(model=classifier, dim=dim, evaluate=True)
+                handler.test(data_test)
+                print("Tested")
+                #gradcam = handler.plot_gradcam2D if dim==2 else handler.plot_gradcam3D                      
+                #gradcam()                     
+                ##handler.plot_roc(roc_ax)
+                #if dim == 3:
+                #handler.write_to_root(root_file)
+                #dim += 1
+       
+                labels, score = handler.scores()
+                print("score is: ", score)
+
+## Moving to ROOT
+##                filein = ROOT.TFile(input_file, "UPDATE")
+##                tree = filein.Get("DisplacedHcalJets/Events").Clone()
+##                newBranch = tree.Branch("CNN3D_scores_"+name[i], new_branch, "CNN3D_scores/D")
+##                for i in range(tree.GetEntries()):
+##                        tree.GetEntry(i)
+##                        new_branch[0] = score[i]
+##                        #newBranch.Fill()
+##                        tree.Fill()
+##                tree.Write()#"", ROOT.TObject.kOverwrite)
+##                input_file.Close()
+
+                score_key = 'CNN3D_'+name[i]
+                df[score_key] = score
+                i+=1
+
+        with uproot.recreate(output_file) as f:
+            f['DisplacedHcalJets/Events'] =  {key : df[key] for key in df.keys()} #This does not currently work-- moving to ROOT
+
+        print("Wrote to ROOT File")
+             
+        #classifier = tf.keras.models.load_model("models/multiInput.keras")
+        #processor = DataProcessor(filepaths[1]['sig_files'], filepaths[1]['bkg_files'], dim=3, test=True, multi=True)
+        #data_test = processor.get_data()
+        #handler = ModelHandler(model=classifier, dim=3, evaluate=True, multi=True)
+        #handler.test(data_test)
+        #handler.plot_roc(roc_ax)
+        #ROC_data = pd.read_csv("../../Run3-HCAL-LLP-Analysis/TMVAStudies/roc_binary_data.csv")
+        #roc_ax.semilogx(np.array(ROC_data['FPR']), np.array(ROC_data['TPR']))
+        #roc_ax.set_title("ROC.png")
+        ##roc_ax.legend(["3DCNN"])
+        ##roc_ax.set_title("Evaluated on All Masses, Augmented Dataset")
+        ##fig.savefig("ROC_eval_plt.png")
+ 
+    else:    
+        filepaths = [ 
+            {"sig_files": [
+                     '/afs/cern.ch/work/f/fsimpson/public/forKat/HADD_jetntuple_ggH_HToSSTo4B_MH350_MS160_CTau500_mod.h5',
+                     '/afs/cern.ch/work/f/fsimpson/public/forKat/HADD_jetntuple_ggH_HToSSTo4B_MH250_MS120_CTau500_mod.h5', 
+                     '/afs/cern.ch/work/f/fsimpson/public/forKat/HADD_jetntuple_ggH_HToSSTo4B_MH125_MS50_CTau500_mod.h5',
+                     '/afs/cern.ch/work/f/fsimpson/public/forKat/HADD_jetntuple_ggH_HToSSTo4B_MH125_MS125_CTau500_mod.h5',
+                     '/afs/cern.ch/work/f/fsimpson/public/forKat/HADD_jetntuple_ggH_HToSSTo4B_MH350_MS80_CTau500_mod.h5',
+                               ], "bkg_files": [#'Inputs/Jet3Dh5/jetntuple_Run2023C-EXOLLPJetHCAL-PromptReco-v1_partial.h5'#,
+                                                #'Inputs/Jet3Dh5/jetntuple_Run2023C-EXOLLPJetHCAL-PromptReco-v1_partial_mod.h5'
+                                                #'Inputs/Jet3Dh5/HADD_Run2023D-EXOLLPJetHCAL-PromptReco-v1_mod.h5',
+                                                '/afs/cern.ch/work/f/fsimpson/public/forKat/HADD_Run2023D-EXOLLPJetHCAL-PromptReco-v1_mod.h5', 
+                                               '/afs/cern.ch/work/f/fsimpson/public/forKat/HADD_Run2023C-EXOLLPJetHCAL-PromptReco-v1_mod.h5',
+                                               '/afs/cern.ch/work/f/fsimpson/public/forKat/HADD_Run2023C-EXOLLPJetHCAL-PromptReco-v2_mod.h5',
+                                                '/afs/cern.ch/work/f/fsimpson/public/forKat/HADD_Run2023D-EXOLLPJetHCAL-PromptReco-v2_mod.h5',
+
+                 ]}]
+    
         classifier2 = Classifier2D().get_model() 
         classifier3 = Classifier3D().get_model()
         classifiers = [classifier3] 
@@ -483,7 +567,7 @@ def main(evaluate=False):
             print("Doing augment")
             X_train, _, y_train, _ = processor.get_data(augment=True)
             print("Finished getting data (and augment)")
-            handler = ModelHandler(model=classifier, dim=dim, evaluate=False, model_name=f"classifier3D-MH350_MS160_CTau500-initialized_Cv2_test4.keras")
+            handler = ModelHandler(model=classifier, dim=dim, evaluate=False, model_name=f"classifier3D-all_CTau500-initialized_it2.keras")
             handler.train((X_train, y_train))
             print("Trained")
             handler.test((X_TEST, y_TEST))
@@ -496,8 +580,8 @@ def main(evaluate=False):
             
         roc_ax.legend(["3DCNN"])
         roc_ax.grid(True)
-        roc_ax.set_title("MH350_MS160_CTau500 with Run2023C v2 ")
-        fig.savefig("ROC_plt_v-MH350_MS160_CTau500_Cv2.png")
+        roc_ax.set_title("Trained using All Masses")
+        fig.savefig("ROC_plt_v-all_it2.png")
         
         #adding in the training of the multi-input
         #classifier = MultiInput(num_features=3).get_model()
@@ -509,96 +593,36 @@ def main(evaluate=False):
         #handler.plot_roc(roc_ax)
         #handler.save()
       
-    else:
-        #classifier2 = tf.keras.models.load_model("models/classifier2d.keras")
-        classifier3 = tf.keras.models.load_model("models/classifier3D-TwoMass-initialized.keras")
-        classifierMH350_MS80_CTau500 = tf.keras.models.load_model("models/classifier3D-MH350_MS80_CTau500-initialized.keras")
-        classifierMH350_MS160_CTau500 = tf.keras.models.load_model("models/classifier3D-MH350_MS160_CTau500-initialized.keras")
-        classifierMH250_MS120_CTau500 = tf.keras.models.load_model("models/classifier3D-MH250_MS120_CTau500-initialized.keras")
-        classifierMH125_MS50_CTau500 = tf.keras.models.load_model("models/classifier3D-MH125_MS50_CTau500-initialized.keras")
-        classifierMH125_MS125_CTau500 = tf.keras.models.load_model("models/classifier3D-MH125_MS125_CTau500-initialized.keras")
-
-        root_file = "ntuples/"+root_file_name+".root"
-        output_file = "output/"+root_file_name+"-v4-scores_added.root"
-
-        classifiers = [classifierMH350_MS80_CTau500,classifier3,classifierMH350_MS160_CTau500,classifierMH250_MS120_CTau500,classifierMH125_MS50_CTau500,classifierMH125_MS125_CTau500]
-        name = ['classifierMH350_MS80_CTau500','classifier3','classifierMH350_MS160_CTau500','classifierMH250_MS120_CTau500','classifierMH125_MS50_CTau500','classifierMH125_MS125_CTau500']
-        events = uproot.open(root_file)['JetHCalRechits']# these files aren't per-event so doesn't make sense
-        df = events.arrays(library="np")
- 
-        i = 0
-        for classifier in classifiers:
-                print("Entered Loop: Eval Mode")
-                processor = DataProcessor(filepaths[0]['sig_files'], dim=dim, testing=True) #we are only evaluating the input root file's h5 file rename sig_files here to input_file
-                print("Got Data")
-                data_test = processor.get_data(augment=False)#True) #returns the full dataset unshuffled so that the scores can be inputted back
-                handler = ModelHandler(model=classifier, dim=dim, evaluate=True)
-                handler.test(data_test)
-                print("Tested")
-                #gradcam = handler.plot_gradcam2D if dim==2 else handler.plot_gradcam3D                      
-                #gradcam()                     
-                ##handler.plot_roc(roc_ax)
-                #if dim == 3:
-                #handler.write_to_root(root_file)
-                #dim += 1
        
-                labels, score = handler.scores()
-                print("score is: ", score)
-                score_key = 'CNN3D_'+name[i]
-                print(score_key)
-                df[score_key] = score
-                i+=1
-                print(df.keys())
-
-        with uproot.recreate(output_file) as f:
-            f['JetHCalRechits'] =  {key : df[key] for key in df.keys()}
-            
-        print("Wrote to ROOT File")
-             
-            #classifier = tf.keras.models.load_model("models/multiInput.keras")
-        #processor = DataProcessor(filepaths[1]['sig_files'], filepaths[1]['bkg_files'], dim=3, test=True, multi=True)
-        #data_test = processor.get_data()
-        #handler = ModelHandler(model=classifier, dim=3, evaluate=True, multi=True)
-        #handler.test(data_test)
-        #handler.plot_roc(roc_ax)
-        #ROC_data = pd.read_csv("../../Run3-HCAL-LLP-Analysis/TMVAStudies/roc_binary_data.csv")
-        #roc_ax.semilogx(np.array(ROC_data['FPR']), np.array(ROC_data['TPR']))
-        #roc_ax.set_title("ROC.png")
-        ##roc_ax.legend(["3DCNN"])
-        ##roc_ax.set_title("Evaluated on All Masses, Augmented Dataset")
-        ##fig.savefig("ROC_eval_plt.png")
-        
         
         
 def evaluate_mass_trainings():
     
     # changing
-    sig_files = ['Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH350_MS160_CTau500_mod.h5',
-                     'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH250_MS120_CTau500_mod.h5', 
-                     'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH125_MS50_CTau500_mod.h5',
-                     'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH125_MS125_CTau500_mod.h5',
-                     'Inputs/Jet3Dh5/HADD_jetntuple_ggH_HToSSTo4B_MH350_MS80_CTau500_mod.h5'
+    sig_files = ['/afs/cern.ch/work/f/fsimpson/public/forKat/HADD_jetntuple_ggH_HToSSTo4B_MH350_MS160_CTau500_mod.h5',
+                     '/afs/cern.ch/work/f/fsimpson/public/forKat/HADD_jetntuple_ggH_HToSSTo4B_MH250_MS120_CTau500_mod.h5', 
+                     '/afs/cern.ch/work/f/fsimpson/public/forKat/HADD_jetntuple_ggH_HToSSTo4B_MH125_MS50_CTau500_mod.h5',
+                     '/afs/cern.ch/work/f/fsimpson/public/forKat/HADD_jetntuple_ggH_HToSSTo4B_MH125_MS125_CTau500_mod.h5',
+                     '/afs/cern.ch/work/f/fsimpson/public/forKat/HADD_jetntuple_ggH_HToSSTo4B_MH350_MS80_CTau500_mod.h5'
                                ]
     
 #    model_names = ['classifier3D-MH350_MS80_CTau500-initialized.keras', 'classifier3D-MH350_MS160_CTau500-initialized.keras', 'classifier3D-MH250_MS120_CTau500-initialized.keras', 'classifier3D-MH125_MS50_CTau500-initialized.keras','classifier3D-MH125_MS125_CTau500-initialized.keras']
-    model_names = ['classifier3D-MH350_MS160_CTau500-initialized_Cv2_test1.keras']  
+    model_names = ['classifier3D-all_CTau500-initialized_it1.keras']  
     # constant
-    background = ['Inputs/Jet3Dh5/HADD_Run2023C-EXOLLPJetHCAL-PromptReco-v2_mod.h5'#'Inputs/Jet3Dh5/jetntuple_Run2023C-EXOLLPJetHCAL-PromptReco-v1_partial.h5'
-        #'Inputs/Jet3Dh5/HADD_Run2023D-EXOLLPJetHCAL-PromptReco-v1_mod.h5',
-        #'Inputs/Jet3Dh5/HADD_Run2023D-EXOLLPJetHCAL-PromptReco-v2.h5',
+    background = ['/afs/cern.ch/work/f/fsimpson/public/forKat/HADD_Run2023C-EXOLLPJetHCAL-PromptReco-v1_mod.h5',
+        '/afs/cern.ch/work/f/fsimpson/public/forKat/HADD_Run2023D-EXOLLPJetHCAL-PromptReco-v1_mod.h5',
+        '/afs/cern.ch/work/f/fsimpson/public/forKat/HADD_Run2023D-EXOLLPJetHCAL-PromptReco-v2_mod.h5',
+        '/afs/cern.ch/work/f/fsimpson/public/forKat/HADD_Run2023C-EXOLLPJetHCAL-PromptReco-v2_mod.h5',
                  ]
     
     names = ['MH350_MS160_CTau500', 'MH250_MS120_CTau500', 'MH125_MS50_CTau500', 'MH125_MS125_CTau500', 'MH350_MS80_CTau500']
-    #names = ['MH350_MS160_CTau500']
     
     
     for index, model3d  in enumerate(model_names):
 
         fig1, ax1 = plt.subplots()
-        #fig2, ax2 = plt.subplots()
 
         classifier3 = tf.keras.models.load_model(f"models/{model3d}")
-        #multiInput = tf.keras.models.load_model(f"models/{model_multi}")
         
         for signal in sig_files:
             
@@ -619,14 +643,14 @@ def evaluate_mass_trainings():
             ax1.set_xlabel("False Positive Rate")
             ax1.set_ylabel("True Positive Rate")
             ax1.legend(names)
-            ax1.set_title(f"Trained on {names[index]} with 3DCNN using Run2023Cv2")
+            ax1.set_title(f"Trained on all masses with 3DCNN")
             #ax2.set_xlabel("False Positive Rate")
             #ax2.set_ylabel("True Positive Rate")
             #ax2.legend(names)
             #ax2.set_title(f"Trained on {names[index]} with multi-input")
             
         plt.tight_layout()       
-        fig1.savefig(f"Trained{names[index]}-3DCNN_Cv2_test1.png")
+        fig1.savefig(f"Trained{names[index]}_all_it1.png")
         #fig2.savefig(f"Trained{names[index]}-MultiInput.png")
         plt.close(fig1)
         #plt.close(fig2)
@@ -703,8 +727,7 @@ def verify_augmented():
         
 if __name__ == "__main__":
 #    evaluate_mass_trainings()
-#    main(evaluate=True)
+    main(evaluate=True)
 #    main()
-    evaluate_mass_trainings()
-
+#    evaluate_mass_trainings()
     #verify_augmented()
