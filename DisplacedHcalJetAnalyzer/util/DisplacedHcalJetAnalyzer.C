@@ -1,19 +1,20 @@
 #define DisplacedHcalJetAnalyzer_cxx
 
-using namespace std;
-
 #include "../DisplacedHcalJetAnalyzer/DisplacedHcalJetAnalyzer.h"
 
 #include "../src/Loop.cxx"
 #include "../src/EventHelper.cxx"
 #include "../src/TriggerHelper.cxx"
 #include "../src/ObjectHelper.cxx"
+#include "../src/HcalRechitHelper.cxx"
 #include "../src/HistHelper.cxx"
 #include "../src/OutputHelper.cxx"
 #include "../src/BDTHelper.cxx"
 #include "../src/TruthInfoHelper.cxx"
+#include "../src/WeightsHelper.cxx"
 
 // gSystem->Load("/Users/kiley/Documents/CMS/WorkingDir/Run3-HCAL-LLP-Analysis/pugixml/pugixml_cpp.so");
+
 
 /* ====================================================================================================================== */
 void DisplacedHcalJetAnalyzer::Initialize( string infiletag, string infilepath ){
@@ -27,67 +28,49 @@ void DisplacedHcalJetAnalyzer::Initialize( string infiletag, string infilepath )
 	SetHistCategories();
 
 	// Initialize TMVA Reader
-	MyTags jet_based = MyTags(/*event_based=*/ false, /*calor_only=*/ false);
-	DeclareTMVAReader(jet_based);
-	MyTags jet_based_calor = MyTags(/*event_based=*/ false, /*calor_only=*/ true);
-	DeclareTMVAReader(jet_based_calor);
-	MyTags event_based = MyTags(/*event_based=*/ true, /*calor_only=*/ false);
-	DeclareTMVAReader(event_based);
+	InitializeTMVA(); 
+
+	// Lifetime Reweighting
+	InitializeLifetimeReweighting( infilepath );
+
+	// Weights for MC
+	SetWeight( infilepath ); // and then added as a branch in OutputHelper.cxx
 
 	return;
 }
 
 /* ====================================================================================================================== */
-void DisplacedHcalJetAnalyzer( string infiletag = "", string infilepath = "" ){
+void DisplacedHcalJetAnalyzer( string infiletag = "", vector<string> infilepaths = {} ){
 
 	clock_t start_clock = clock();
 
+	cout<<"\n ----- INITIALIZING ----- \n"<<endl;
+
+
 	//gSystem->Load("/Users/kiley/Documents/CMS/WorkingDir/Run3-HCAL-LLP-Analysis/pugixml/pugixml_cpp.so");
 	
-	// ----- Get Infile ----- //
-	// NEED TO FIX 
-	
-	if( infilepath == "" ) { // Path from base dir -- when ONLY file tag is provided
-
-		// Using infiletag (e.g. 362085_2022-11-16_100 )
-		string infilename = "";
-
-		// Local & global paths 
-		vector<string> infilepaths = {
-			// Look locally
-			"",
-			"../NTuples/02_17_2023/", 
-			// Look globally -- for files on lxplus
-			// Fix path "/afs/cern.ch/work/k/kikenned/public/L1LLPJetStudies/HcalTuples/",
-			// Look on cmsxrootd
-			"root://cmsxrootd.fnal.gov///store/user/kikenned/JetMET/Run2022G-EXOHighMET-PromptReco-v1_RAW-RECO_20230509_041536/230509_021544/0000/", // High MET
-			"root://cmsxrootd.fnal.gov///store/user/gkopp/ggH_HToSSTobbbb_MH-125_MS-15_CTau1000_13p6TeV/LLP_MC_test__20230511_194008/230511_174021/0000/", // MC signal
-		};
-
-		// Get filepath
-		bool filepath_exists = false;
-		for( int i=0; i<infilepaths.size(); i++ ){
-			if( !gSystem->AccessPathName( Form("%s%s", infilepaths.at(i).c_str(), infilename.c_str() ) ) ){
-				infilepath = infilepaths.at(i)+infilename;
-				filepath_exists = true;
-				break;
-			}
-		}
-
-		if( !filepath_exists ){
-			cout<<"ERROR: could not find input file, exiting program. Checked the following file paths:"<<endl;
-			for( int i=0; i<infilepaths.size(); i++ ){
-				cout<<infilepaths.at(i)+infilename<<endl;
-			}
-			return;
-		}
-	}
-
 	// ----- Read in File & Tree ----- // 
 
-	cout<<"Reading in "<<infilepath<<endl;
+	cout<<"\nAdding the following files to chain:"<<endl;
+
 	TChain *chain = new TChain("DisplacedHcalJets/Events");
-	chain->Add( Form("%s", infilepath.c_str() ) );
+    chain->SetCacheSize(50 * 1024 * 1024); // 50 MB
+    chain->SetCacheLearnEntries(10);
+
+	int n_files = 0;
+	for( auto infilepath: infilepaths ){
+		if( gSystem->AccessPathName( Form("%s", infilepath.c_str() ) ) )
+			cout<<"WARNING: Could not find input file: "<<infilepath<<endl;
+
+		cout<<infilepath<<endl;
+		chain->Add( Form("%s", infilepath.c_str() ) );
+		n_files++;
+	}
+
+	if( n_files == 0 ){
+		cout<<"ERROR: Could not find any input files. Exiting program."<<endl;
+		return;
+	}
 
 	//TFile *f = new TFile( Form("%s", infilepath.c_str() ) );
 	//cout<<"Reading Tree..."<<endl;
@@ -106,10 +89,12 @@ void DisplacedHcalJetAnalyzer( string infiletag = "", string infilepath = "" ){
 	AnalysisReader.save_hists	= false;	// For output histograms
 	AnalysisReader.save_trees	= true;		// For minituples
 	AnalysisReader.NEvents 		= -1; 		// Run over specified number of events (set to -1 for ALL)
+	AnalysisReader.randomGenerator->SetSeed(0);
 
 	// ----- Initialize ----- // 
 
-	AnalysisReader.Initialize( infiletag, infilepath ); 
+
+	AnalysisReader.Initialize( infiletag, infilepaths.at(0) ); 
 	
 	//TString outfilename = Form( "minituple_%s.root", infiletag.c_str() ); // Not yet
 	TString outfilename = Form( "minituple_%s.root", infiletag.c_str() );
@@ -133,17 +118,26 @@ void DisplacedHcalJetAnalyzer( string infiletag = "", string infilepath = "" ){
 }
 
 /* ====================================================================================================================== */
+void DisplacedHcalJetAnalyzer( string infiletag = "", string infilepath = "" ){
+
+	vector<string> infilepaths = { infilepath };
+	DisplacedHcalJetAnalyzer( infiletag, infilepaths );
+
+}
+
+/* ====================================================================================================================== */
 int main(int argc, char** argv) { // For running in compiled mode
 
 	int Nargs = argc;
 
-	if( Nargs == 2 )
-		DisplacedHcalJetAnalyzer( argv[1], "" );
-  
-	else if( Nargs > 2 )
-		DisplacedHcalJetAnalyzer( argv[1], argv[2] );
+	if( Nargs > 2 ){
+	    vector<string> infilepaths;
+	    for( int i = 2; i < Nargs; i++ ) infilepaths.push_back( argv[i] ); 
 
-	else 
-		cout<<"ERROR: Too enough arguments!"<<endl;
+	    DisplacedHcalJetAnalyzer( argv[1], infilepaths );
+
+	} else {
+		cout<<"ERROR: Not enough arguments!"<<endl;
+	}
 
 }

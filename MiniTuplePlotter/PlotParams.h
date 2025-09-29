@@ -39,6 +39,9 @@ PlotParams P_jet0_Eta					= {"jet0_Eta", "Leading Jet #eta", "Jet #eta", -1.5, 1
 PlotParams P_jet0_Phi					= {"jet0_Phi", "Leading Jet #phi", "Jet #phi", -3.2, 3.2 };
 PlotParams P_jet0_Mass					= {"jet0_Mass", "Leading Jet Mass", "Jet Mass", 0, 40 };
 PlotParams P_jet0_JetArea				= {"jet0_JetArea", "Leading Jet Area", "Jet Area", 0, 1 };
+PlotParams P_jet0_dEta					= {"jet0_Eta - jet1_Eta", "Leading-subleading Jet #Delta#eta", "Jet #Delta#eta", -1.5, 1.5 };
+PlotParams P_jet0_dPhi					= {"jet0_Phi - jet1_Phi", "Leading-subleading Jet #Delta#phi", "Jet #Delta#phi", -3.2, 3.2 };
+
 // spread
 PlotParams P_jet0_EtaSpread				= {"jet0_EtaSpread", "Leading Jet #eta Spread", "#eta Spread", 0, 0.4 };
 PlotParams P_jet0_EtaSpread_energy		= {"jet0_EtaSpread_energy", "Leading Jet #eta Spread Energy", "#eta Spread (energy weighted)", 0, 0.2 };
@@ -58,6 +61,14 @@ PlotParams P_jet0_SminorSmajor			={"-1 * ((jet0_S_etaeta * jet0_S_phiphi + sqrt(
 PlotParams P_jet0_TDCaverage 			={"jet0_TDCavg", "Leading Jet Average TDC (2 bits)", "Average TDC", -0.5, 2.5 };
 PlotParams P_jet0_TDCaverage_Eweight	={"jet0_TDCavg_energyWeight", "Leading Jet Average TDC, energy weighted (2 bits)", "Average TDC (energy weighted)", -0.5, 2.5 };
 PlotParams P_jet0_TDCnDelayed			={"jet0_TDCnDelayed", "Leading Jet Number of Delayed HCAL Cells", "Number of Delayed Cells", 0, 15 };
+
+PlotParams P_jet0_DepthTowers_pt1 		={"jet0_DepthTowers_pt1", "Number of Depth Flagged Towers with dR<0.1", "Number of Depth Flagged Towers", -0.5, 8.5};
+PlotParams P_jet0_DepthTowers	 		={"jet0_DepthTowers", "Number of Depth Flagged Towers with dR<0.4", "Number of Depth Flagged Towers", -0.5, 8.5};
+PlotParams P_jet0_TimingTowers_pt1	 	={"jet0_TimingTowers_pt1", "Number of Timing Flagged Towers with dR<0.1", "Number of Timing Flagged Towers", -0.5, 8.5};
+PlotParams P_jet0_TimingTowers	 		={"jet0_TimingTowers", "Number of Timing Flagged Towers with dR<0.4", "Number of Timing Flagged Towers", -0.5, 8.5};
+PlotParams P_jet0_FlaggedTowers_pt1	 	={"jet0_TimingTowers_pt1 + jet0_DepthTowers_pt1", "Number of Timing OR Depth Flagged Towers with dR<0.1", "Number of Timing or Depth Flagged Towers", -0.5, 8.5};
+PlotParams P_jet0_FlaggedTowers	 		={"jet0_TimingTowers + jet0_DepthTowers", "Number of Timing OR Depth Flagged Towers with dR<0.4", "Number of Timing or Depth Flagged Towers", -0.5, 8.5};
+PlotParams P_jet0_dR_L1jet	 			={"jet0_dR_L1jet", "dR between PF and L1 jet", "dR", 0, 0.5};
 
 // tracks
 PlotParams P_jet0_Track0PtFrac			= {"jet0_Track0Pt / jet0_Pt", "Leading Jet: Leading Track p_{T} / Jet p_{T}", "Track Energy Fraction", 0, 1 };
@@ -188,6 +199,8 @@ PlotParams P_jet0_track2Pt				= {"jet0_track2Pt", "Leading Jet: Third leading Tr
 // Subleading jet
 PlotParams P_jet1_E						= {"jet1_E", "Sub-Leading Jet Energy", "E [GeV] (sub-leading jet)", 0, 250 };
 PlotParams P_jet1_Pt					= {"jet1_Pt", "Sub-Leading Jet p_{T}", "p_{T} [GeV] (sub-leading jet)", 0, 250 };
+PlotParams P_jet1_Phi					= {"jet1_Phi", "Sub-Leading Jet #phi", "#phi (sub-leading jet)", -3.2, 3.2 };
+PlotParams P_jet1_Eta					= {"jet1_Eta", "Sub-Leading Jet #eta", "#eta (sub-leading jet)", -1.5, 1.5 };
 PlotParams P_jet1_EtaSpread				= {"jet1_EtaSpread", "Sub-Leading Jet #eta Spread", "#eta Spread", 0, 0.4 };
 PlotParams P_jet1_EtaSpread_energy		= {"jet1_EtaSpread_energy", "Sub-Leading Jet #eta Spread Energy", "#eta Spread (energy weighted)", 0, 0.2 };
 PlotParams P_jet1_PhiSpread				= {"jet1_PhiSpread", "Sub-Leading Jet #phi Spread", "#phi Spread", 0, 0.4 };
@@ -201,13 +214,14 @@ PlotParams P_jet1_EleEFrac				= {"jet1_EleEFrac", "Sub-Leading Jet: Electron Ene
 PlotParams P_jet1_MuonEFrac				= {"jet1_MuonEFrac", "Sub-Leading Jet: Muon Energy Fraction", "Muon Energy Fraction", 0, 1 };
 PlotParams P_jet1_HoverE				= {"jet1_HoverE", "Sub-Leading Jet: H/E Energy Ratio", "H/E Energy Ratio", 0, 100 };
 PlotParams P_jet1_NeutralOverChargedHad = {"jet1_NeutralHadEFrac/jet0_ChargedHadEFrac", "Sub-Leading Jet: Neutral / Charged Hadronic Energy Fraction", "Neutral / Charged Hadronic Energy Fraction", 0, 100};
+PlotParams P_jet2_Pt					= {"jet2_Pt", "Third Leading Jet p_{T}", "p_{T} [GeV] (third-leading jet)", 0, 250 };
 
 // --------------------------------------------------------------------- //
 // Event Quantities
 PlotParams P_met_Pt						= {"met_Pt", "MET p_{T}", "p_{T} [GeV]", 0, 400 };
 PlotParams P_met_Phi					= {"met_Phi", "MET #phi", "#phi", -3.2, 3.2 };
 PlotParams P_met_SumEt					= {"met_SumEt", "MET Sum E_{T}", "E_{T} [GeV]", 0, 5000 };
-PlotParams P_eventHT					= {"eventHT", "Event HT", "HT [GeV]", 0, 1200 };
+PlotParams P_eventHT					= {"eventHT", "Event H_{T}", "H_{T} [GeV]", 0, 1200 };
 
 // --------------------------------------------------------------------- //
 // LLP variables 
@@ -246,12 +260,41 @@ PlotParams P_LLP1_DecayZ				= {"LLP1_DecayZ", "LLP1 decay Z position", "Decay Z 
 PlotParams P_LLP1_DecayT				= {"LLP1_DecayT", "LLP1 decay time", "Decay time [ns]", 0, 10 };
 PlotParams P_LLP1_DecayCtau				= {"LLP1_DecayCtau", "LLP1 c#tau", "c#tau [cm]", 0, 1000 };
 
+PlotParams P_jet0_bdtscoreX_LLP350_MS80_perJet = {"jet0_bdtscoreX_LLP350_MS80_perJet", "BDT Score", "BDT (350, 80) Score", -1, 1};
+PlotParams P_jet1_bdtscoreX_LLP350_MS80_perJet = {"jet1_bdtscoreX_LLP350_MS80_perJet", "BDT Score", "BDT (350, 80) Score", -1, 1};
+PlotParams P_jet2_bdtscoreX_LLP350_MS80_perJet = {"jet2_bdtscoreX_LLP350_MS80_perJet", "BDT Score", "BDT (350, 80) Score", -1, 1};
+
+PlotParams P_jet0_scores = {"jet0_scores", "DNN Depth Score", "DNN Depth Score, jet 0", 0, 1};
+PlotParams P_jet1_scores = {"jet1_scores", "DNN Depth Score", "DNN Depth Score, jet 1", 0, 1};
+PlotParams P_jet2_scores = {"jet2_scores", "DNN Depth Score", "DNN Depth Score, jet 2", 0, 1};
+PlotParams P_jet3_scores = {"jet3_scores", "DNN Depth Score", "DNN Depth Score, jet 3", 0, 1};
+PlotParams P_jet4_scores = {"jet4_scores", "DNN Depth Score", "DNN Depth Score, jet 4", 0, 1};
+PlotParams P_jet5_scores = {"jet5_scores", "DNN Depth Score", "DNN Depth Score, jet 5", 0, 1};
+PlotParams P_jet0_scores_inc = {"jet0_scores_inc", "DNN Inclusive Score", "DNN Inclusive Score, jet 0", 0, 1};
+PlotParams P_jet1_scores_inc = {"jet1_scores_inc", "DNN Inclusive Score", "DNN Inclusive Score, jet 1", 0, 1};
+PlotParams P_jet2_scores_inc = {"jet2_scores_inc", "DNN Inclusive Score", "DNN Inclusive Score, jet 2", 0, 1};
+PlotParams P_jet3_scores_inc = {"jet3_scores_inc", "DNN Inclusive Score", "DNN Inclusive Score, jet 3", 0, 1};
+PlotParams P_jet4_scores_inc = {"jet4_scores_inc", "DNN Inclusive Score", "DNN Inclusive Score, jet 4", 0, 1};
+PlotParams P_jet5_scores_inc = {"jet5_scores_inc", "DNN Inclusive Score", "DNN Inclusive Score, jet 5", 0, 1};
+
+PlotParams P_jet1and2_scores = {"jet1_scores + jet2_scores", "DNN Depth Score", "DNN Depth Score, jet 1 + jet 2", 0, 2};
+PlotParams P_jet1and2_scores_inc = {"jet1_scores_inc + jet2_scores_inc", "DNN Inclusive Score", "DNN Inclusive Score, jet 1 + jet 2", 0, 2};
+
+PlotParams P_jet0_scores_inc_train80 = {"jet0_scores_inc_train80", "DNN Inclusive Score, train 80%", "DNN Inclusive 80%, jet0", 0, 1};
+PlotParams P_jet0_scores_inc_train40 = {"jet0_scores_inc_train40", "DNN Inclusive Score, train 40%", "DNN Inclusive 40%, jet0", 0, 1};
+PlotParams P_jet0_scores_depth_hcal = {"jet0_scores_depth_hcal", "DNN Depth Score (HCAL)", "DNN Depth HCAL, jet0", 0, 1};
+PlotParams P_jet0_scores_depth_anywhere = {"jet0_scores_depth_anywhere", "DNN Depth Score", "DNN Depth, jet0", 0, 1};
+
+PlotParams P_jet1_scores_inc_train80 = {"jet1_scores_inc_train80", "DNN Inclusive Score (subleading), train 80%", "DNN Inclusive 80%, jet1", 0, 1};
+PlotParams P_jet1_scores_depth_hcal = {"jet1_scores_depth_hcal", "DNN Depth Score (HCAL, subleading)", "DNN Depth HCAL, jet1", 0, 1};
+PlotParams P_jet1_scores_depth_anywhere = {"jet1_scores_depth_anywhere", "DNN Depth Score (subleading)", "DNN Depth, jet1", 0, 1};
+
 // --------------------------------------------------------------------- //
 // -------------------------- per jet variables ------------------------ //
 // --------------------------------------------------------------------- //
 
 PlotParams P_perJet_E					= {"perJet_E", "Jet Energy", "Jet E [GeV]", 0, 250 };
-PlotParams P_perJet_Pt					= {"perJet_Pt", "Jet p_{T}", "Jet p_{T} [GeV]", 0, 250 };
+PlotParams P_perJet_Pt					= {"perJet_Pt", "Jet p_{T}", "Jet p_{T} [GeV]", 0, 300 };
 PlotParams P_perJet_Eta					= {"perJet_Eta", "Jet #eta", "Jet #eta", -1.5, 1.5 };
 PlotParams P_perJet_Phi					= {"perJet_Phi", "Jet #phi", "Jet #phi", -3.2, 3.2 };
 PlotParams P_perJet_Mass				= {"perJet_Mass", "Jet Mass", "Jet Mass", 0, 40 };
@@ -259,7 +302,7 @@ PlotParams P_perJet_Mass				= {"perJet_Mass", "Jet Mass", "Jet Mass", 0, 40 };
 PlotParams P_run						= {"run", "Run Number", "Run Number", 366000, 372000};
 PlotParams P_bdtscore_LLP350_MS80_perJet = {"bdtscore_LLP350_MS80_perJet", "BDT Score", "BDT (350, 80) Score", 0.99, 1};
 
-PlotParams P_perJet_NeutralHadEFrac			= {"perJet_NeutralHadEFrac", "Jet: Neutral Hadron Energy Fraction", "Neutral Hadron Energy Fraction", 0, 0.8 }; //1.01 };
+PlotParams P_perJet_NeutralHadEFrac			= {"perJet_NeutralHadEFrac", "Jet: Neutral Hadron Energy Fraction", "Neutral Hadron Energy Fraction", 0, 1.01 };
 PlotParams P_perJet_ChargedHadEFrac			= {"perJet_ChargedHadEFrac", "Jet: Charged Hadron Energy Fraction", "Charged Hadron Energy Fraction", 0, 1.01 };
 PlotParams P_perJet_PhoEFrac				= {"perJet_PhoEFrac", "Jet: Photon Energy Fraction", "Photon Energy Fraction", 0, 1.01 };
 PlotParams P_perJet_EleEFrac				= {"perJet_EleEFrac", "Jet: Electron Energy Fraction", "Electron Energy Fraction", 0, 1.01 };

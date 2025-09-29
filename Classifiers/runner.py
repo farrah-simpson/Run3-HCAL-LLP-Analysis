@@ -74,7 +74,7 @@ class DataProcessor:
                 return -1
         
         filter_name = "perJet_*"
-        filepath = '/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.6/'
+        filepath = '/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.8/'
     
         sig_fps = [filepath + filename for filename in sig_files] if sig_files is not None else []
         bkg_fps = [filepath + filename for filename in bkg_files] if bkg_files is not None else []
@@ -114,8 +114,8 @@ class DataProcessor:
         
         print("Processing...")
         features = ['perJet_LeadingRechitD', 'perJet_E', 'perJet_Pt', 'perJet_Eta',
-       'perJet_Phi', 'perJet_Mass', 'perJet_Area',
- 'perJet_S_phiphi', 'perJet_S_etaeta',
+       'perJet_Phi', 'perJet_Mass', # 'perJet_Area',
+       'perJet_S_phiphi', 'perJet_S_etaeta',
        'perJet_S_etaphi', 'perJet_Tracks_dR', 'perJet_Track0Pt',
        'perJet_Track0dR', 'perJet_Track0dEta', 'perJet_Track0dPhi',
        'perJet_Track0dzToPV', 'perJet_Track0dxyToBS', 'perJet_Track0dzOverErr',
@@ -168,7 +168,7 @@ class ModelHandler:
         
         self.num_classes = num_classes
         self.num_layers = num_layers
-        self.model_name = "dense_model.keras"
+        self.model_name = "dense_model_v1.keras"
         self.colors = ['red', 'blue', 'green']
         
         self.names = ["HCAL12", "HCAL34", "bkg"] if num_classes == 3 else ["HCAL", "bkg"]
@@ -276,12 +276,12 @@ class ModelHandler:
         
         
 class Runner:
-    def __init__(self, sig_files=None, bkg_files=None, mode="train", num_classes=3):
+    def __init__(self, sig_files=None, sig_files_test=None, bkg_files=None, bkg_files_test=None, mode="train", num_classes=3):
         self.mode = mode
         self.num_classes = num_classes
         if mode == "train":
-            self.sig_train, self.sig_test = sig_files
-            self.bkg_train, self.bkg_test = bkg_files
+            self.sig_train, self.sig_test = sig_files, sig_files_test
+            self.bkg_train, self.bkg_test = bkg_files, bkg_files_test
         elif mode == "eval":
             self.sig_eval = sig_files
             self.bkg_eval = bkg_files
@@ -350,47 +350,49 @@ class Runner:
         
         
 def main():
+
     filenames = [
-    "minituple_v3.6_LLP_MC_ggH_HToSSTobbbb_MH-125_MS-15_CTau1000_13p6TeV_2024_03_02_TRAIN.root",
-    "minituple_v3.6_LLP_MC_ggH_HToSSTobbbb_MH-125_MS-50_CTau3000_13p6TeV_2024_03_02_batch1.root",
-    "minituple_v3.6_LLP_MC_ggH_HToSSTobbbb_MH-250_MS-120_CTau10000_13p6TeV_2024_03_02_batch1.root",
-    "minituple_v3.6_LLP_MC_ggH_HToSSTobbbb_MH-350_MS-160_CTau10000_13p6TeV_2024_03_02_batch1.root",
-    "minituple_v3.6_LLP_MC_ggH_HToSSTobbbb_MH-350_MS-80_CTau500_13p6TeV_2024_03_02_TRAIN.root",
-    "minituple_v3.6_LLP_MC_ggH_HToSSTobbbb_MH-HADD_TRAIN-batch1.root"]
+    "minituple_v3.8_LLP_MC_ggH_HToSSTobbbb_MH-125_MS-15_CTau1000_13p6TeV_2024_06_03_TRAIN.root",
+    "minituple_v3.8_LLP_MC_ggH_HToSSTobbbb_MH-125_MS-50_CTau3000_13p6TeV_2024_06_03_batch1.root",
+    "minituple_v3.8_LLP_MC_ggH_HToSSTobbbb_MH-250_MS-120_CTau10000_13p6TeV_2024_06_03_batch1.root",
+    "minituple_v3.8_LLP_MC_ggH_HToSSTobbbb_MH-350_MS-160_CTau10000_13p6TeV_2024_06_03_batch1.root",
+    "minituple_v3.8_LLP_MC_ggH_HToSSTobbbb_MH-350_MS-80_CTau500_13p6TeV_2024_06_03_TRAIN.root",
+    "minituple_v3.8_LLP_MC_ggH_HToSSTobbbb_MH-HADD_TRAIN-batch1.root"
+    ]
     
     bkg_files = [
-        "minituple_v3.6_LLPskim_Run2023Cv1_2024_03_02.root",
-        "minituple_v3.6_LLPskim_Run2023Cv3_2024_03_02.root",
-        "minituple_v3.6_LLPskim_Run2023Dv1_2024_03_02.root",
-        "minituple_v3.6_LLPskim_Run2023Bv1_2024_03_02.root",
-        "minituple_v3.6_LLPskim_Run2023Cv2_2024_03_02.root",
-        "minituple_v3.6_LLPskim_Run2023Cv4_2024_03_02.root",
-        "minituple_v3.6_LLPskim_Run2023Dv2_2024_03_02.root"
+    "minituple_v3.8_LLPskim_Run2023Cv1_2024_06_03.root",
+    "minituple_v3.8_LLPskim_Run2023Cv3_2024_06_03.root",
+    "minituple_v3.8_LLPskim_Run2023Dv1_2024_06_03.root",
+    "minituple_v3.8_LLPskim_Run2023Bv1_2024_06_03.root",
+    "minituple_v3.8_LLPskim_Run2023Cv2_2024_06_03.root",
+    "minituple_v3.8_LLPskim_Run2023Cv4_2024_06_03.root",
+    "minituple_v3.8_LLPskim_Run2023Dv2_2024_06_03.root"
     ]
 
     filenames_test = [
-    "minituple_v3.6_LLP_MC_ggH_HToSSTobbbb_MH-125_MS-15_CTau1000_13p6TeV_2024_03_02_TEST.root",
-    "minituple_v3.6_LLP_MC_ggH_HToSSTobbbb_MH-125_MS-50_CTau3000_13p6TeV_2024_03_02_batch2.root",
-    "minituple_v3.6_LLP_MC_ggH_HToSSTobbbb_MH-250_MS-120_CTau10000_13p6TeV_2024_03_02_batch2.root",
-    "minituple_v3.6_LLP_MC_ggH_HToSSTobbbb_MH-350_MS-160_CTau10000_13p6TeV_2024_03_02_batch2.root",
-    "minituple_v3.6_LLP_MC_ggH_HToSSTobbbb_MH-350_MS-80_CTau500_13p6TeV_2024_03_02_TEST.root",
-    "minituple_v3.6_LLP_MC_ggH_HToSSTobbbb_MH-HADD_TEST-batch2.root"]
+    "minituple_v3.8_LLP_MC_ggH_HToSSTobbbb_MH-125_MS-15_CTau1000_13p6TeV_2024_06_03_TEST.root",
+    "minituple_v3.8_LLP_MC_ggH_HToSSTobbbb_MH-125_MS-50_CTau3000_13p6TeV_2024_06_03_batch2.root",
+    "minituple_v3.8_LLP_MC_ggH_HToSSTobbbb_MH-250_MS-120_CTau10000_13p6TeV_2024_06_03_batch2.root",
+    "minituple_v3.8_LLP_MC_ggH_HToSSTobbbb_MH-350_MS-160_CTau10000_13p6TeV_2024_06_03_batch2.root",
+    "minituple_v3.8_LLP_MC_ggH_HToSSTobbbb_MH-350_MS-80_CTau500_13p6TeV_2024_06_03_TEST.root",
+    "minituple_v3.8_LLP_MC_ggH_HToSSTobbbb_MH-HADD_TEST-batch2.root"
+    ]
     
     bkg_files_test = [
-        "minituple_v3.6_LLPskim_Run2023Cv1_2024_03_02.root",
-        "minituple_v3.6_LLPskim_Run2023Cv3_2024_03_02.root",
-        "minituple_v3.6_LLPskim_Run2023Dv1_2024_03_02.root",
-        "minituple_v3.6_LLPskim_Run2023Bv1_2024_03_02.root",
-        "minituple_v3.6_LLPskim_Run2023Cv2_2024_03_02.root",
-        "minituple_v3.6_LLPskim_Run2023Cv4_2024_03_02.root",
-        "minituple_v3.6_LLPskim_Run2023Dv2_2024_03_02.root"]
+    "minituple_v3.8_LLPskim_Run2023Cv1_2024_06_03.root",
+    "minituple_v3.8_LLPskim_Run2023Cv3_2024_06_03.root",
+    "minituple_v3.8_LLPskim_Run2023Dv1_2024_06_03.root",
+    "minituple_v3.8_LLPskim_Run2023Bv1_2024_06_03.root",
+    "minituple_v3.8_LLPskim_Run2023Cv2_2024_06_03.root",
+    "minituple_v3.8_LLPskim_Run2023Cv4_2024_06_03.root",
+    "minituple_v3.8_LLPskim_Run2023Dv2_2024_06_03.root"
+    ]
+        
+    mode = "train" # "train" # "eval", # "filewrite"
     
-    mode = "train" # "eval", "filewrite"
-    
-    runner = Runner(sig_files=filenames[:1], mode=mode, num_classes=3)
+    runner = Runner(sig_files=filenames[:1], sig_files_test=filenames_test[:1], bkg_files=bkg_files[:1], bkg_files_test=bkg_files_test[:1], mode=mode, num_classes=3)
     runner.run()
-    
-    
     
 if __name__ == "__main__":
     main()

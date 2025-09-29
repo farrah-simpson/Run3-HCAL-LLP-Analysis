@@ -64,7 +64,11 @@ void DisplacedHcalJetAnalyzer::SetLLPVariables(){
 bool DisplacedHcalJetAnalyzer::isRechitValid(float RechitEnergy, int RechitDepth) {
 	vector<float> energy_cuts_2022initial = {0.1, 0.2, 0.3, 0.3};
 	vector<float> energy_cuts_2022rereco = 	{0.25, 0.25, 0.3, 0.3}; // best agreement with MC
-	vector<float> energy_cuts_2023 = 		{0.25, 0.3, 0.3, 0.3};
+	vector<float> energy_cuts_2023 = 		{0.4, 0.3, 0.3, 0.3};
+	// https://github.com/cms-sw/cmssw/blob/master/RecoParticleFlow/PFClusterProducer/python/particleFlowClusterHBHE_cfi.py#L6
+	// https://github.com/swagata87/cmssw/blob/51067fbc70af1ef57a0f6a0f2d7297deefbeba45/RecoParticleFlow/PFClusterProducer/python/particleFlowClusterHBHE_cfi.py#L13
+	// https://github.com/cms-sw/cmssw/blob/master/RecoParticleFlow/PFClusterProducer/python/particleFlowRecHitHBHE_cfi.py#L8
+
 	if (RechitEnergy >= energy_cuts_2023[RechitDepth-1]) return true;
 	else return false;
 }
@@ -173,7 +177,7 @@ vector<float> DisplacedHcalJetAnalyzer::DeltaEta_Phi_b( int idx_llp){
 	int idx_gParticle1 = map_gLLP_to_gParticle_indices.at(idx_llp).at(0);
 	int idx_gParticle2 = map_gLLP_to_gParticle_indices.at(idx_llp).at(1);
 	delta_eta_phi.push_back( abs(gParticle_Eta->at(idx_gParticle1) - gParticle_Eta->at(idx_gParticle2)) );
-	delta_eta_phi.push_back(deltaPhi(gParticle_Phi->at(idx_gParticle1), gParticle_Phi->at(idx_gParticle2)));
+	delta_eta_phi.push_back( DeltaPhi(gParticle_Phi->at(idx_gParticle1), gParticle_Phi->at(idx_gParticle2)));
 	return delta_eta_phi;
 }
 
@@ -357,4 +361,55 @@ vector<TVector3> DisplacedHcalJetAnalyzer::GetLLPDecayProdCoords(int idx_llp, in
 	return decay_product_coords;
 }
 
+
+/* ====================================================================================================================== */
+void DisplacedHcalJetAnalyzer::InitializeLifetimeReweighting( string infiletag ){
+
+	// Get Signal Lifetime from Filetag //
+
+	ctau_sample = -1;
+
+	string str_first = "CTau";
+
+	if( infiletag.find(str_first) == string::npos ){
+		cout<<"NOTE: Setting lifetime as: "<<ctau_sample<<" (normal for non-signal samples)"<<endl;
+		return; // Not signal
+	}
+
+	string infiletag_partial = infiletag.substr( infiletag.find(str_first)+str_first.length(), infiletag.length() );
+
+	// End String (either the following _ or . or /)
+	vector<string> vecstr_last = {".", "_", "/"};
+	unsigned last = infiletag.length();
+
+	for( auto str_last: vecstr_last ){
+		if( infiletag_partial.find(str_last) == string::npos ) continue;
+		unsigned last_temp = infiletag_partial.find(str_last);
+		if( last_temp < last ) last = last_temp;
+	}
+
+	float ctau_sample = std::stof( infiletag_partial.substr(0,last))*0.1; // 0.1 to convert from mm to cm
+
+	cout<<"\nReading in signal lifetime as: "<<ctau_sample<<" cm..."<<endl;
+
+	// Set LTRW List //
+
+	list_lifetime_rw_str = { "30", "100", "300", "1000", "3000", "10000", "30000", "100000" };
+
+	cout<<"\nInitializing lifetime reweighting targets to:"<<endl;
+	for( auto lt_rw: list_lifetime_rw_str ) 
+		cout<<" --> "<<lt_rw<<" cm"<<endl;
+
+}
+
+/* ====================================================================================================================== */
+Float_t DisplacedHcalJetAnalyzer::GetLifetimeReweight( float ctau_target, float ctau_llp0, float ctau_llp1 ){
+
+	if( ctau_sample < 0 ) return -1; 
+
+	Float_t reweight_llp0 = pow ( ctau_sample / ctau_target, 1 ) * exp( -ctau_llp0 * ( 1.0/ctau_target - 1.0/ctau_sample ) );
+	Float_t reweight_llp1 = pow ( ctau_sample / ctau_target, 1 ) * exp( -ctau_llp1 * ( 1.0/ctau_target - 1.0/ctau_sample ) );
+	return reweight_llp0*reweight_llp1;
+
+}
 

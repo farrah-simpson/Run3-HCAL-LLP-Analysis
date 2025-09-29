@@ -233,6 +233,39 @@ Location of minituples:
 /eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.8/
 ```
 
+### v3.9
+Updates:
+* Updated 2023 HCAL PF rechit thresholds to agree with those in CMSSW, moving from 0.25 to 0.4 GeV in HB depth 1
+* Zmumu selection for fake rate studies 
+* PV saved in minituples
+
+### v3.10
+Updates:
+* Added fractional variables to minituples (fractional track pT, fractional rechit E)
+* Added jet-L1 matching result (hwQual of matched L1 jet) to per jet trees
+* Allowed all jet-L1 matching to consider all L1 jets, not just leading 3 as previously done!
+
+### v3.11
+Updates:
+* Depth and timing tower emulation added, with nominal energy thresholds (4 GeV timing, 1 GeV and 5 GeV depth)
+
+### v3.12
+Updates:
+* Added randomFloat output branch (0-1) for training / testinig splits
+* Jet eta requirement moved from 1.26 to 2.4 (tightened in v3.13)
+* Save up to 4 jets (instead of 6)
+* Add HCAL rechits to PerJet trees
+* Different output trees are replaced with boolean branches (NoSel and PerJet_NoSel are the only trees saved)
+* PassEventPreselection added to EventHelper.cxx, and define depth and inclusive canidate 
+
+### v3.13
+Updates:
+* Major: Z+jets selection fixed (had a bug), expanded mass range selection to 81-101 GeV, and required muon pair has opposite charge
+* Z+jets and W+jets are explicitly orthogonal
+* Global variables are initalized consistently 
+* Eta cut on inclusive tag canidate is set to 2.0
+* Changes needed for adding CNN scores to event trees
+
 ## V4
 Ongoing wish list:
 * MET filters

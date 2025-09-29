@@ -11,20 +11,28 @@ void DisplacedHcalJetAnalyzer::DeclareOutputTrees(){
 
 	cout<<"Declaring Output Trees..."<<endl;	
 
-	treenames = { "NoSel", "PassedHLT", "WPlusJets" }; 
+	treenames = { "NoSel" }; //, "NoSel" PassedHLT", "WPlusJets", "NoLepton", "Zmumu" }; 
 
-	vector<string> myvars_bool = {};
+	vector<string> myvars_bool = {
+		"Pass_PreSel",
+		"Pass_L1SingleLLPJet",
+		"Pass_HLTDisplacedJet",
+		"Pass_WPlusJets",
+		"Pass_ZPlusJets",
+		"Pass_NoLepton",
+	};
 	
 	for (int i = 0; i < HLT_Indices.size(); i++) {
 		myvars_bool.push_back(HLT_Names[i]);
 	}
 
 	// Add Event Variables //
+
 	vector<string> myvars_int = {
-		"run","lumi","event","jet","validJet","muon","ele","pho",
+		"run","lumi","event","PV","jet","validJet","muon","ele","pho",
 		"RechitN","RechitN_1GeV","RechitN_5GeV","RechitN_10GeV",
 		"TrackN", "ecalRechitN", "HBHE_Rechit_auxTDC"
-	};	
+	};
 
 	for ( int i=0; i<3; i++ ) {
 		myvars_int.push_back( Form("jet%d_RechitN", i) );
@@ -35,25 +43,24 @@ void DisplacedHcalJetAnalyzer::DeclareOutputTrees(){
 	}
 
 	vector<string> myvars_float = {
-		"met_Pt", "met_Phi", "met_SumEt", "eventHT"
+		"met_Pt", "met_Phi", "met_SumEt", "eventHT", "weight", "randomFloat"
 	};
 
-	// Add BDT Scores //
-	MyTags event_based = MyTags(/*event_based=*/ true, /*calor_only=*/ false);
-	for( auto bdt_tag: event_based.bdt_tags() ){
-		myvars_float.push_back( Form("bdtscore_%s", bdt_tag.c_str()) );
-	}
+	vector<string> myvars_vec = {};
 
 	// Add Physics Variables //
 
-	for( int i=0; i<6; i++ ) {
-		if (i < 3) {
+	for( int i=0; i<N_PFJets_ToSave; i++ ) {
+		if (i < 3 && i < N_PFJets_ToSave) {
 			myvars_float.push_back( Form("l1jet%d_Pt", i) );
 			myvars_float.push_back( Form("l1jet%d_E", i) );
 			myvars_float.push_back( Form("l1jet%d_Eta", i) );
 			myvars_float.push_back( Form("l1jet%d_Phi", i) );
 			myvars_float.push_back( Form("l1jet%d_hwQual", i) );
 		}
+
+		myvars_bool.push_back( Form("jet%d_DepthTagCand", i) );
+		myvars_bool.push_back( Form("jet%d_InclTagCand", i) );
 
 		myvars_float.push_back( Form("jet%d_Pt", i) );
 		myvars_float.push_back( Form("jet%d_Eta", i) );
@@ -78,6 +85,11 @@ void DisplacedHcalJetAnalyzer::DeclareOutputTrees(){
 		myvars_int.push_back( Form("jet%d_PhoMult", i) );
 		myvars_int.push_back( Form("jet%d_EleMult", i) );
 		myvars_int.push_back( Form("jet%d_MuonMult", i) );
+
+		myvars_float.push_back( Form("jet%d_DeepCSV_prob_b", i) );
+		myvars_float.push_back( Form("jet%d_DeepCSV_prob_c", i) );
+		myvars_float.push_back( Form("jet%d_DeepCSV_prob_bb", i) );
+		myvars_float.push_back( Form("jet%d_DeepCSV_prob_udsg", i) );
 
 		myvars_float.push_back( Form("jet%d_PtAllTracks", i) );
 		myvars_float.push_back( Form("jet%d_PtAllPVTracks", i) );
@@ -116,8 +128,11 @@ void DisplacedHcalJetAnalyzer::DeclareOutputTrees(){
 		myvars_float.push_back( Form("jet%d_TDCnDelayed", i) );
 		myvars_float.push_back( Form("jet%d_Timeavg", i) );
 
+		if (i==0) myvars_float.push_back( Form("jet%d_jet1_dPhi", i) );
+
 		for (int t=0; t<3; t++) {
 			myvars_float.push_back( Form("jet%d_Track%dPt", i, t) );
+			myvars_float.push_back( Form("jet%d_Frac_Track%dPt", i, t) );
 			myvars_float.push_back( Form("jet%d_Track%ddzToPV", i, t) );
 			myvars_float.push_back( Form("jet%d_Track%ddxyToBS", i, t) );
 			myvars_float.push_back( Form("jet%d_Track%ddzOverErr", i, t) );
@@ -137,10 +152,26 @@ void DisplacedHcalJetAnalyzer::DeclareOutputTrees(){
 		myvars_float.push_back(Form("jet%d_LeadingRechitE", i) );
 		myvars_float.push_back(Form("jet%d_SubLeadingRechitE", i) );
 		myvars_float.push_back(Form("jet%d_SSubLeadingRechitE", i) );
+		myvars_float.push_back(Form("jet%d_Frac_LeadingRechitE", i) );
+		myvars_float.push_back(Form("jet%d_Frac_SubLeadingRechitE", i) );
+		myvars_float.push_back(Form("jet%d_Frac_SSubLeadingRechitE", i) );
 		myvars_float.push_back(Form("jet%d_AllRechitE", i) );
 		myvars_int.push_back(Form("jet%d_LeadingRechitD", i) );
 		myvars_int.push_back(Form("jet%d_SubLeadingRechitD", i) );
 		myvars_int.push_back(Form("jet%d_SSubLeadingRechitD", i) );
+		myvars_int.push_back(Form("jet%d_TimingTowers", i) );
+		myvars_int.push_back(Form("jet%d_TimingTowers_pt1", i) );
+		myvars_int.push_back(Form("jet%d_DepthTowers", i) );
+		myvars_int.push_back(Form("jet%d_DepthTowers_pt1", i) );
+
+		for( auto bdt_tag: bdt_tags ){
+			myvars_float.push_back( Form("jet%d_bdtscore_%s", i, bdt_tag.c_str()) ); 
+			//cout<<Form("jet%d_bdtscore_%s", i, bdt_tag.c_str())<<endl;
+		}
+		myvars_vec.push_back(Form("jet%d_rechit_E", i) );
+		myvars_vec.push_back(Form("jet%d_rechit_reliEta", i) );
+		myvars_vec.push_back(Form("jet%d_rechit_reliPhi", i) );
+		myvars_vec.push_back(Form("jet%d_rechit_depth", i) );
 
 		if (i < 2) {
 			myvars_float.push_back( Form("LLP%d_Pt", i));
@@ -182,6 +213,7 @@ void DisplacedHcalJetAnalyzer::DeclareOutputTrees(){
 		myvars_float.push_back( Form("LLPDecay%d_ProdZ", i) );
 		myvars_float.push_back( Form("LLPDecay%d_ProdR", i) );
 		myvars_float.push_back( Form("LLPDecay%d_isTruthMatched", i) );
+
 		myvars_float.push_back( Form("LLPDecay%d_isTruthMatched_Eta", i) );
 		if (i < 2) {
 			myvars_float.push_back( Form("LLP%d_isTruthMatched", i) );
@@ -196,6 +228,39 @@ void DisplacedHcalJetAnalyzer::DeclareOutputTrees(){
 			myvars_float.push_back( Form("LLP%d_isTruthMatched_Jet100Eta", i) );
 		}
 	}
+
+	for( auto lt_rw: list_lifetime_rw_str ) 
+		myvars_float.push_back( Form("weight_ctau_%s", lt_rw.c_str()) );
+
+	// Flags
+	myvars_bool.push_back("Flag_HBHENoiseFilter");
+	myvars_bool.push_back("Flag_HBHENoiseIsoFilter");
+	myvars_bool.push_back("Flag_CSCTightHaloFilter");
+	myvars_bool.push_back("Flag_CSCTightHaloTrkMuUnvetoFilter");
+	myvars_bool.push_back("Flag_CSCTightHalo2015Filter");
+	myvars_bool.push_back("Flag_globalTightHalo2016Filter");
+	myvars_bool.push_back("Flag_globalSuperTightHalo2016Filter");
+	myvars_bool.push_back("Flag_HcalStripHaloFilter");
+	myvars_bool.push_back("Flag_hcalLaserEventFilter");
+	myvars_bool.push_back("Flag_EcalDeadCellTriggerPrimitiveFilter");
+	myvars_bool.push_back("Flag_EcalDeadCellBoundaryEnergyFilter");
+	myvars_bool.push_back("Flag_ecalBadCalibFilter");
+	myvars_bool.push_back("Flag_goodVertices");
+	myvars_bool.push_back("Flag_eeBadScFilter");
+	myvars_bool.push_back("Flag_ecalLaserCorrFilter");
+	myvars_bool.push_back("Flag_trkPOGFilters");
+	myvars_bool.push_back("Flag_chargedHadronTrackResolutionFilter");
+	myvars_bool.push_back("Flag_muonBadTrackFilter");
+	myvars_bool.push_back("Flag_BadChargedCandidateFilter");
+	myvars_bool.push_back("Flag_BadPFMuonFilter");
+	myvars_bool.push_back("Flag_BadPFMuonDzFilter");
+	myvars_bool.push_back("Flag_hfNoisyHitsFilter");
+	myvars_bool.push_back("Flag_BadChargedCandidateSummer16Filter");
+	myvars_bool.push_back("Flag_BadPFMuonSummer16Filter");
+	myvars_bool.push_back("Flag_trkPOG_manystripclus53X");
+	myvars_bool.push_back("Flag_trkPOG_toomanystripclus53X");
+	myvars_bool.push_back("Flag_trkPOG_logErrorTooManyClusters");
+	myvars_bool.push_back("Flag_METFilters_2022_2023_PromptReco");
 
 	cout<<"Creating new trees for the following:"<<endl;
 	if( treenames.size() == 0 ) cout<<"WARNING: No treenames specified!"<<endl;
@@ -213,6 +278,9 @@ void DisplacedHcalJetAnalyzer::DeclareOutputTrees(){
 		for( auto var: myvars_float )
 			tree_output[treename]->Branch( Form("%s",var.c_str()), &tree_output_vars_float[var] );
 
+		for( auto var: myvars_vec )
+			tree_output[treename]->Branch( Form("%s",var.c_str()), &tree_output_vars_vec[var] );		
+
 	}
 }
 
@@ -229,32 +297,34 @@ void DisplacedHcalJetAnalyzer::DeclareOutputJetTrees(){
 
 	cout<<"Declaring Output Trees..."<<endl;	
 
-	jet_treenames = { "PerJet_NoSel", "PerJet_PassedHLT", "PerJet_WPlusJets", "PerJet_LLPmatched" }; 
+	jet_treenames = {"PerJet_NoSel"}; //"PerJet_PreSel", "PerJet_PassedHLT", "PerJet_WPlusJets", "PerJet_LLPmatched", "PerJet_NoLepton", "PerJet_Zmumu" }; 
 
-	vector<string> myvars_bool = {};
+	vector<string> myvars_bool = {
+		"Pass_PreSel",
+		"Pass_L1SingleLLPJet",
+		"Pass_HLTDisplacedJet",
+		"Pass_WPlusJets",
+		"Pass_ZPlusJets",
+		"Pass_NoLepton",
+		"Pass_LLPMatched",
+		"Pass_DepthTagCand",
+		"Pass_InclTagCand"
+	};
+
 	for (int i = 0; i < HLT_Indices.size(); i++) {
 		myvars_bool.push_back(HLT_Names[i]);
 	}
 
 	// Add Event Variables //
 	vector<string> myvars_int = {
-		"run","lumi","event","jet","muon","ele","pho",
-		"jetIndex"
+		"run","lumi","event","jetIndex",
+		"PV","jet","muon","ele","pho",
 	};	
 
-	vector<string> myvars_float = {"eventHT"};
-
-	// Add BDT Scores //
-	MyTags jet_based = MyTags(/*event_based=*/ false, /*calor_only=*/ false);
-	for( auto bdt_tag: jet_based.bdt_tags() ){
-		myvars_float.push_back( Form("bdtscore_%s", bdt_tag.c_str()) );
-	}
-	MyTags jet_based_calor = MyTags(/*event_based=*/ false, /*calor_only=*/ true);
-	for( auto bdt_tag: jet_based_calor.bdt_tags() ){
-		myvars_float.push_back( Form("bdtscore_%s", bdt_tag.c_str()) );
-	}
+	vector<string> myvars_float = {"eventHT", "randomFloat"};
 
 	// Add Physics Variables //
+
 	// consider adding L1 jet information
 	myvars_float.push_back("perJet_E");
 	myvars_float.push_back("perJet_Pt");
@@ -267,6 +337,9 @@ void DisplacedHcalJetAnalyzer::DeclareOutputJetTrees(){
 	myvars_float.push_back("perJet_PhoEFrac");
 	myvars_float.push_back("perJet_EleEFrac");
 	myvars_float.push_back("perJet_MuonEFrac");
+
+	myvars_int.push_back("perJet_L1trig_Matched");
+	myvars_float.push_back("perJet_dR_L1jet");
 
 	myvars_float.push_back("perJet_PtAllTracks");
 	myvars_float.push_back("perJet_PtAllPVTracks");
@@ -285,8 +358,16 @@ void DisplacedHcalJetAnalyzer::DeclareOutputJetTrees(){
 
 	myvars_float.push_back("perJet_Tracks_dR");
 
+	myvars_int.push_back(Form("perJet_DepthTowers") );
+
+	myvars_float.push_back("perJet_TDCavg");
+	myvars_float.push_back("perJet_TDCavg_energyWeight");
+	myvars_float.push_back("perJet_TDCnDelayed");
+	myvars_float.push_back("perJet_Timeavg");
+
 	for (int t=0; t<3; t++) {
 		myvars_float.push_back( Form("perJet_Track%dPt", t) );
+		myvars_float.push_back( Form("perJet_Frac_Track%dPt", t) );
 		myvars_float.push_back( Form("perJet_Track%ddR", t) );
 		myvars_float.push_back( Form("perJet_Track%ddEta", t) );
 		myvars_float.push_back( Form("perJet_Track%ddPhi", t) );
@@ -302,10 +383,18 @@ void DisplacedHcalJetAnalyzer::DeclareOutputJetTrees(){
 	myvars_float.push_back("perJet_LeadingRechitE" );
 	myvars_float.push_back("perJet_SubLeadingRechitE" );
 	myvars_float.push_back("perJet_SSubLeadingRechitE" );
+	myvars_float.push_back("perJet_Frac_LeadingRechitE" );
+	myvars_float.push_back("perJet_Frac_SubLeadingRechitE" );
+	myvars_float.push_back("perJet_Frac_SSubLeadingRechitE" );
 	myvars_float.push_back("perJet_AllRechitE" );
 	myvars_int.push_back("perJet_LeadingRechitD" );
 
+	vector<string> myvars_vec = {
+		"perJet_rechit_E", "perJet_rechit_reliEta", "perJet_rechit_reliPhi", "perJet_rechit_depth"
+	};
+
 	cout<<"Creating new trees for the following:"<<endl;
+
 	if( jet_treenames.size() == 0 ) cout<<"WARNING: No jet treenames specified!"<<endl;
 	for( auto treename: jet_treenames ){
 		cout<<"  --> "<<treename<<endl;
@@ -320,6 +409,9 @@ void DisplacedHcalJetAnalyzer::DeclareOutputJetTrees(){
 
 		for( auto var: myvars_float )
 			jet_tree_output[treename]->Branch( Form("%s",var.c_str()), &jet_tree_output_vars_float[var] );
+
+		for( auto var: myvars_vec )
+			jet_tree_output[treename]->Branch( Form("%s",var.c_str()), &jet_tree_output_vars_vec[var] );
 	}
 }
 
@@ -328,11 +420,13 @@ void DisplacedHcalJetAnalyzer::ResetOutputBranches( string treename ){
 
 	if( debug ) cout<<"DisplacedHcalJetAnalyzer::ResetOutputTrees()"<<endl;
 
-	for( const auto &pair : tree_output_vars_bool )
-		tree_output_vars_bool[pair.first] = false;
-	
+	// Event Trees //
+
 	for( const auto &pair : tree_output_vars_int )
 		tree_output_vars_int[pair.first] = -9999;
+
+	for( const auto &pair : tree_output_vars_bool )
+		tree_output_vars_bool[pair.first] = false;
 
 	for( const auto &pair : tree_output_vars_float )
 		tree_output_vars_float[pair.first] = -9999.9;
@@ -340,11 +434,16 @@ void DisplacedHcalJetAnalyzer::ResetOutputBranches( string treename ){
 	for( const auto &pair : tree_output_vars_string )
 		tree_output_vars_string[pair.first] = "";
 
-	for( const auto &pair : jet_tree_output_vars_bool )
-		jet_tree_output_vars_bool[pair.first] = false;
-	
+	for( const auto &pair : tree_output_vars_vec )
+		tree_output_vars_vec[pair.first].clear();	
+
+	// Jet Trees //
+
 	for( const auto &pair : jet_tree_output_vars_int )
 		jet_tree_output_vars_int[pair.first] = -9999;
+
+	for( const auto &pair : jet_tree_output_vars_bool )
+		jet_tree_output_vars_bool[pair.first] = false;
 
 	for( const auto &pair : jet_tree_output_vars_float )
 		jet_tree_output_vars_float[pair.first] = -9999.9;
@@ -352,26 +451,13 @@ void DisplacedHcalJetAnalyzer::ResetOutputBranches( string treename ){
 	for( const auto &pair : jet_tree_output_vars_string )
 		jet_tree_output_vars_string[pair.first] = "";
 
+	for( const auto &pair : jet_tree_output_vars_string )
+		jet_tree_output_vars_vec[pair.first].clear();
+
 }
 
 /* ====================================================================================================================== */
-vector<pair<float,float>> DisplacedHcalJetAnalyzer::TrackMatcher(int jetIndex, vector<uint> jet_track_index) {
-
-	if (debug) cout << "DisplacedHcalJetAnalyzer::TrackMatcher()"<<endl;
-
-	vector<pair<float, float>> track_pt_index;
-	for (int j = 0; j < jet_track_index.size(); j++) { 				// jet_NTracks->at(i) == jet_track_index.size()
-		for (int k = 0; k < n_track; k++) { 						// find which generalTrack matches to jet_track_index[j]
-			if (jet_track_index[j] == track_index->at(k)) {
-				track_pt_index.push_back({track_Pt->at(k), k});
-			}
-		} 
-	}	
-	return track_pt_index;
-}
-
-/* ====================================================================================================================== */
-void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename ){ 
+void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename, map<string, bool> Pass_EventSelections ){ 
 	// for the output trees that are filled on a per event basis
 
 	if( debug ) cout<<"DisplacedHcalJetAnalyzer::FillOutputTrees()"<<endl;
@@ -380,9 +466,14 @@ void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename ){
 
 	ResetOutputBranches( treename );
 
+	// Fill Pass_EventSelections
+	for( const auto &pair : Pass_EventSelections )
+		tree_output_vars_bool[pair.first] = pair.second;
+
 	tree_output_vars_int["run"] 	= runNum;
 	tree_output_vars_int["lumi"] 	= lumiNum;
 	tree_output_vars_int["event"] 	= eventNum;
+	tree_output_vars_int["PV"] 		= n_PV;
 	tree_output_vars_int["jet"]		= n_jet;
 	tree_output_vars_int["ele"]		= n_ele;
 	tree_output_vars_int["muon"]	= n_muon;
@@ -396,10 +487,40 @@ void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename ){
 	tree_output_vars_float["met_SumEt"]	= met_SumEt;
 
 	tree_output_vars_float["eventHT"]   = EventHT();
+	tree_output_vars_float["weight"]	= weight; // from SetWeight() in WeightsHelper.cxx
 
 	for (int i = 0; i < HLT_Indices.size(); i++) { 
 		tree_output_vars_bool[HLT_Names[i]] = HLT_Decision->at(i);
 	}
+
+	tree_output_vars_bool["Flag_HBHENoiseFilter"] = Flag_HBHENoiseFilter;
+	tree_output_vars_bool["Flag_HBHENoiseIsoFilter"] = Flag_HBHENoiseIsoFilter;
+	tree_output_vars_bool["Flag_CSCTightHaloFilter"] = Flag_CSCTightHaloFilter;
+	tree_output_vars_bool["Flag_CSCTightHaloTrkMuUnvetoFilter"] = Flag_CSCTightHaloTrkMuUnvetoFilter;
+	tree_output_vars_bool["Flag_CSCTightHalo2015Filter"] = Flag_CSCTightHalo2015Filter;
+	tree_output_vars_bool["Flag_globalTightHalo2016Filter"] = Flag_globalTightHalo2016Filter;
+	tree_output_vars_bool["Flag_globalSuperTightHalo2016Filter"] = Flag_globalSuperTightHalo2016Filter;
+	tree_output_vars_bool["Flag_HcalStripHaloFilter"] = Flag_HcalStripHaloFilter;
+	tree_output_vars_bool["Flag_hcalLaserEventFilter"] = Flag_hcalLaserEventFilter;
+	tree_output_vars_bool["Flag_EcalDeadCellTriggerPrimitiveFilter"] = Flag_EcalDeadCellTriggerPrimitiveFilter;
+	tree_output_vars_bool["Flag_EcalDeadCellBoundaryEnergyFilter"] = Flag_EcalDeadCellBoundaryEnergyFilter;
+	tree_output_vars_bool["Flag_ecalBadCalibFilter"] = Flag_ecalBadCalibFilter;
+	tree_output_vars_bool["Flag_goodVertices"] = Flag_goodVertices;
+	tree_output_vars_bool["Flag_eeBadScFilter"] = Flag_eeBadScFilter;
+	tree_output_vars_bool["Flag_ecalLaserCorrFilter"] = Flag_ecalLaserCorrFilter;
+	tree_output_vars_bool["Flag_trkPOGFilters"] = Flag_trkPOGFilters;
+	tree_output_vars_bool["Flag_chargedHadronTrackResolutionFilter"] = Flag_chargedHadronTrackResolutionFilter;
+	tree_output_vars_bool["Flag_muonBadTrackFilter"] = Flag_muonBadTrackFilter;
+	tree_output_vars_bool["Flag_BadChargedCandidateFilter"] = Flag_BadChargedCandidateFilter;
+	tree_output_vars_bool["Flag_BadPFMuonFilter"] = Flag_BadPFMuonFilter;
+	tree_output_vars_bool["Flag_BadPFMuonDzFilter"] = Flag_BadPFMuonDzFilter;
+	tree_output_vars_bool["Flag_hfNoisyHitsFilter"] = Flag_hfNoisyHitsFilter;
+	tree_output_vars_bool["Flag_BadChargedCandidateSummer16Filter"] = Flag_BadChargedCandidateSummer16Filter;
+	tree_output_vars_bool["Flag_BadPFMuonSummer16Filter"] = Flag_BadPFMuonSummer16Filter;
+	tree_output_vars_bool["Flag_trkPOG_manystripclus53X"] = Flag_trkPOG_manystripclus53X;
+	tree_output_vars_bool["Flag_trkPOG_toomanystripclus53X"] = Flag_trkPOG_toomanystripclus53X;
+	tree_output_vars_bool["Flag_trkPOG_logErrorTooManyClusters"] = Flag_trkPOG_logErrorTooManyClusters;
+	tree_output_vars_bool["Flag_METFilters_2022_2023_PromptReco"] = Flag_METFilters_2022_2023_PromptReco;
 
 	tree_output_vars_int["RechitN_1GeV"] = 0; 
 	tree_output_vars_int["RechitN_5GeV"] = 0; 
@@ -422,23 +543,23 @@ void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename ){
 
 	// jets are already sorted in jet Pt (not jet E!). Loop over first three reco jets, and save quantities in the ntuples
 	int valid_jet = 0;
+	int first_valid_jet = -1;
 	for (int i = 0; i < n_jet; i++) {
-		if (jet_Pt->at(i) < 40 || abs(jet_Eta->at(i)) > 1.26) continue; // not interested if low energy (< 40) or in HE (eta > 1.26) 
-		if (valid_jet >= 6) continue; // below output variables are only designed to be used for first 12 jets
+		if (jet_Pt->at(i) < 40 || abs(jet_Eta->at(i)) > 2.0 ) continue; //1.26) continue; // not interested if low energy (< 40) or in HE (eta > 1.26) 
+		if (valid_jet >= N_PFJets_ToSave) continue; // below output variables are only designed to be used for first 12 jets
 
 		tree_output_vars_int[Form("jet%d_Index", valid_jet)]	= i; // needed if only filling for valid_jet
-		
-		float dR = 999.9;
-		float L1trig = -999.9;
-		for (int j = 0; j < max_l1jets; j++) { // loop over L1 jets to determine if a reco jet is matched to jet that passed L1
-			float dR_to_L1 = DeltaR( jet_Eta->at(i), l1jet_Eta->at(j), jet_Phi->at(i), l1jet_Phi->at(j) );
-			if (dR_to_L1 < dR) { // if matched, save the dR and whether the L1 jet is triggered by HCAL LLP
-				dR = dR_to_L1;
-				L1trig = l1jet_hwQual->at(j);
-			}
-		}
-		tree_output_vars_float[Form("jet%d_dR_L1jet", valid_jet)] = dR;
-		if (dR < 0.4) tree_output_vars_int[Form("jet%d_L1trig_Matched", valid_jet)] = L1trig;
+
+		float deltaR_jet_l1jet; 
+		bool JetPassL1Trigger = JetPassesHWQual( i, deltaR_jet_l1jet );
+		tree_output_vars_float[Form("jet%d_dR_L1jet", valid_jet)] = deltaR_jet_l1jet;
+		if (deltaR_jet_l1jet < 0.4) tree_output_vars_int[Form("jet%d_L1trig_Matched", valid_jet)] = (int)JetPassL1Trigger;
+
+		if( i == jetIndex_DepthTagCand )
+			tree_output_vars_bool[Form("jet%d_DepthTagCand", valid_jet)] = true;
+		if( i == jetIndex_InclTagCand )
+			tree_output_vars_bool[Form("jet%d_InclTagCand", valid_jet)]  = true;
+
 		tree_output_vars_float[Form("jet%d_Pt", valid_jet)] 	= jet_Pt->at(i);
 		tree_output_vars_float[Form("jet%d_Eta", valid_jet)] 	= jet_Eta->at(i);
 		tree_output_vars_float[Form("jet%d_Phi", valid_jet)] 	= jet_Phi->at(i);
@@ -458,6 +579,11 @@ void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename ){
 		tree_output_vars_int[Form("jet%d_PhoMult", valid_jet)] 					= jet_PhoMult->at(i);
 		tree_output_vars_int[Form("jet%d_EleMult", valid_jet)] 					= jet_EleMult->at(i);
 		tree_output_vars_int[Form("jet%d_MuonMult", valid_jet)] 				= jet_MuonMult->at(i);
+
+		tree_output_vars_float[Form("jet%d_DeepCSV_prob_b", valid_jet)] 		= jet_DeepCSV_prob_b->at(i);
+		tree_output_vars_float[Form("jet%d_DeepCSV_prob_c", valid_jet)] 		= jet_DeepCSV_prob_c->at(i);
+		tree_output_vars_float[Form("jet%d_DeepCSV_prob_bb", valid_jet)] 		= jet_DeepCSV_prob_bb->at(i);
+		tree_output_vars_float[Form("jet%d_DeepCSV_prob_udsg", valid_jet)] 		= jet_DeepCSV_prob_udsg->at(i);
 
 		tree_output_vars_float[Form("jet%d_PtAllTracks", valid_jet)] 			= jet_PtAllTracks->at(i);
 		tree_output_vars_float[Form("jet%d_PtAllPVTracks", valid_jet)] 			= jet_PtAllPVTracks->at(i);
@@ -498,6 +624,9 @@ void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename ){
 		tree_output_vars_float[Form("jet%d_LeadingRechitE", valid_jet)] 			= energeticRechits[0].first;
 		tree_output_vars_float[Form("jet%d_SubLeadingRechitE", valid_jet)] 			= energeticRechits[1].first;
 		tree_output_vars_float[Form("jet%d_SSubLeadingRechitE", valid_jet)] 		= energeticRechits[2].first;
+		tree_output_vars_float[Form("jet%d_Frac_LeadingRechitE", valid_jet)] 		= energeticRechits[0].first / jet_E->at(i);
+		tree_output_vars_float[Form("jet%d_Frac_SubLeadingRechitE", valid_jet)] 	= energeticRechits[1].first / jet_E->at(i);
+		tree_output_vars_float[Form("jet%d_Frac_SSubLeadingRechitE", valid_jet)] 	= energeticRechits[2].first / jet_E->at(i);
 		tree_output_vars_float[Form("jet%d_AllRechitE", valid_jet)] 				= energeticRechits[3].first;
 		tree_output_vars_int[Form("jet%d_LeadingRechitD", valid_jet)] 				= energeticRechits[0].second;
 		tree_output_vars_int[Form("jet%d_SubLeadingRechitD", valid_jet)] 			= energeticRechits[1].second;
@@ -512,6 +641,10 @@ void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename ){
 		tree_output_vars_float[Form("jet%d_S_etaeta", valid_jet)]					= spread_Eta_Phi[4];
 		tree_output_vars_float[Form("jet%d_S_phiphi", valid_jet)]					= spread_Eta_Phi[5];
 		tree_output_vars_float[Form("jet%d_S_etaphi", valid_jet)]					= spread_Eta_Phi[6];
+		tree_output_vars_int[Form("jet%d_TimingTowers", valid_jet)]					= GetTimingTowers_Jet(i, 0.4);
+		tree_output_vars_int[Form("jet%d_TimingTowers_pt1", valid_jet)]				= GetTimingTowers_Jet(i, 0.1);
+		tree_output_vars_int[Form("jet%d_DepthTowers", valid_jet)]					= GetDepthTowers_Jet(i, 0.4);
+		tree_output_vars_int[Form("jet%d_DepthTowers_pt1", valid_jet)]				= GetDepthTowers_Jet(i, 0.1);
 
 		tree_output_vars_float[Form("jet%d_TDCavg", valid_jet)] = TDC_TDCenergy[0];
 		tree_output_vars_float[Form("jet%d_TDCavg_energyWeight", valid_jet)] = TDC_TDCenergy[1];
@@ -522,14 +655,21 @@ void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename ){
 		vector<uint> jet_track_index = jet_TrackIndices->at(i);
 		vector<pair<float, float>> track_pt_index = TrackMatcher(i, jet_track_index);
 
+		if (valid_jet==1 && jet_Pt->at(first_valid_jet) > 0 && jet_Pt->at(i) > 0) tree_output_vars_float[Form("jet0_jet%d_dPhi", valid_jet)] 		= DeltaPhi(jet_Phi->at(first_valid_jet), jet_Phi->at(i));
 		for (int track = 0; track < 3; track++) {
 			tree_output_vars_float[Form("jet%d_Track%dPt", valid_jet, track)] = 0; // default value for track pT (in case no tracks are matched)
+			tree_output_vars_float[Form("jet%d_Frac_Track%dPt", valid_jet, track)] = 0; // default value for fractional track pT (in case no tracks are matched)
 			tree_output_vars_float[Form("jet%d_Track%ddR", valid_jet, track)] = 0.5; // default value for track dR (in case no tracks are matched)
 			tree_output_vars_float[Form("jet%d_Track%ddEta", valid_jet, track)] = 0.5;
 			tree_output_vars_float[Form("jet%d_Track%ddPhi", valid_jet, track)] = 0.5;
+			//tree_output_vars_float[Form("jet%d_Track%ddzToPV", valid_jet, track)] = 0;
+			//tree_output_vars_float[Form("jet%d_Track%ddxyToBS", valid_jet, track)] = 0;
+			//tree_output_vars_float[Form("jet%d_Track%ddzOverErr", valid_jet, track)] = 0;
+			//tree_output_vars_float[Form("jet%d_Track%ddxyOverErr", valid_jet, track)] = 0;
 		}
 		if (track_pt_index.size() > 0) {
 			std::sort (track_pt_index.begin(), track_pt_index.end(), greater<pair<float, float>>()); // sort to find highest pt tracks
+
 			// int n_track = std::min(3, (int) jet_track_index.size());
 			int n_track = jet_track_index.size();
 			int valid_tracks = 0;
@@ -539,28 +679,46 @@ void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename ){
 				// could put requirement here that track matches with PV
 				valid_tracks += 1; 
 				if (valid_tracks > 3) continue;			
-				tree_output_vars_float[Form("jet%d_Track%dPt", valid_jet, track)] 			= track_pt_index[track].first;
-				tree_output_vars_float[Form("jet%d_Track%ddzToPV", valid_jet, track)] 		= track_dzToPV->at(track_num); 
-				tree_output_vars_float[Form("jet%d_Track%ddxyToBS", valid_jet, track)] 		= track_dxyToBS->at(track_num); 
-				tree_output_vars_float[Form("jet%d_Track%ddzOverErr", valid_jet, track)]	= track_dzToPV->at(track_num) / track_dzErr->at(track_num); 
-				tree_output_vars_float[Form("jet%d_Track%ddxyOverErr", valid_jet, track)] 	= track_dxyToBS->at(track_num) / track_dxyErr->at(track_num); 
+				tree_output_vars_float[Form("jet%d_Track%dPt", valid_jet, valid_tracks -1)] 			= track_Pt->at(track_num); //track_pt_index[track].first;
+				tree_output_vars_float[Form("jet%d_Frac_Track%dPt", valid_jet, valid_tracks -1)] 		= track_Pt->at(track_num) / jet_Pt->at(i); 
+				tree_output_vars_float[Form("jet%d_Track%ddzToPV", valid_jet, valid_tracks -1)] 		= track_dzToPV->at(track_num); 
+				tree_output_vars_float[Form("jet%d_Track%ddxyToBS", valid_jet, valid_tracks -1)] 		= track_dxyToBS->at(track_num); 
+				tree_output_vars_float[Form("jet%d_Track%ddzOverErr", valid_jet, valid_tracks -1)]		= track_dzToPV->at(track_num) / track_dzErr->at(track_num); 
+				tree_output_vars_float[Form("jet%d_Track%ddxyOverErr", valid_jet, valid_tracks -1)] 	= track_dxyToBS->at(track_num) / track_dxyErr->at(track_num); 
 
-				tree_output_vars_float[Form("jet%d_Track%dnMissingInnerHits", valid_jet, track)] 	= track_nMissingInnerHits->at(track_num);
-				tree_output_vars_float[Form("jet%d_Track%dnMissingOuterHits", valid_jet, track)] 	= track_nMissingOuterHits->at(track_num); 
-				tree_output_vars_float[Form("jet%d_Track%dnPixelHits", valid_jet, track)] 			= track_nPixelHits->at(track_num); 
-				tree_output_vars_float[Form("jet%d_Track%dnHits", valid_jet, track)] 				= track_nHits->at(track_num); 
+				tree_output_vars_float[Form("jet%d_Track%dnMissingInnerHits", valid_jet, valid_tracks -1)] 	= track_nMissingInnerHits->at(track_num);
+				tree_output_vars_float[Form("jet%d_Track%dnMissingOuterHits", valid_jet, valid_tracks -1)] 	= track_nMissingOuterHits->at(track_num); 
+				tree_output_vars_float[Form("jet%d_Track%dnPixelHits", valid_jet, valid_tracks -1)] 		= track_nPixelHits->at(track_num); 
+				tree_output_vars_float[Form("jet%d_Track%dnHits", valid_jet, valid_tracks -1)] 				= track_nHits->at(track_num); 
 
-				tree_output_vars_float[Form("jet%d_Track%ddR", valid_jet, track)] 			= DeltaR( jet_Eta->at(i), track_Eta->at(track_num), jet_Phi->at(i), track_Phi->at(track_num) ); 
-				tree_output_vars_float[Form("jet%d_Track%ddEta", valid_jet, track)] 		= jet_Eta->at(i) - track_Eta->at(track_num);
-				tree_output_vars_float[Form("jet%d_Track%ddPhi", valid_jet, track)] 		= deltaPhi( jet_Phi->at(i), track_Phi->at(track_num) ); 
-				if (track == 1) {															// dR for two leading tracks
+				tree_output_vars_float[Form("jet%d_Track%ddR", valid_jet, valid_tracks -1)] 		= DeltaR( jet_Eta->at(i), track_Eta->at(track_num), jet_Phi->at(i), track_Phi->at(track_num) ); 
+				tree_output_vars_float[Form("jet%d_Track%ddEta", valid_jet, valid_tracks -1)] 		= jet_Eta->at(i) - track_Eta->at(track_num);
+				tree_output_vars_float[Form("jet%d_Track%ddPhi", valid_jet, valid_tracks -1)] 		= DeltaPhi( jet_Phi->at(i), track_Phi->at(track_num) ); 
+				if (valid_tracks == 1 && track_Pt->at(track_num) > 0) {
+					tree_output_vars_float[Form("jet%d_Tracks_dR", valid_jet)] = 1; // default for if second track doesn't pass, set tracks_dR to 1
+				}
+				if (valid_tracks == 2 && track_Pt->at(track_num) > 0) { // dR for two leading tracks, make sure both tracks are within 0.4 of jet and have valid pT
 					tree_output_vars_float[Form("jet%d_Tracks_dR", valid_jet)] 				= DeltaR( track_Eta->at(track_pt_index[0].second), track_Eta->at(track_num), track_Phi->at(track_pt_index[0].second), track_Phi->at(track_num) );
 				}
 			}
 		} // end of track matching 
+
+		for( auto bdt_tag: bdt_tags )
+			tree_output_vars_float[Form("jet%d_bdtscore_%s", valid_jet, bdt_tag.c_str())] = GetBDTScores( bdt_tag, valid_jet ); // Needs to be valid_jet and not i
+
+		if( JetPassL1Trigger ){ // only fill if L1 triggered jet
+			vector<vector<float>> rechit_values = GetHcalRechitValues_Jet(i);
+			tree_output_vars_vec[Form("jet%d_rechit_E", valid_jet)]       = rechit_values.at(0);
+			tree_output_vars_vec[Form("jet%d_rechit_reliEta", valid_jet)] = rechit_values.at(1);
+			tree_output_vars_vec[Form("jet%d_rechit_reliPhi", valid_jet)] = rechit_values.at(2);
+			tree_output_vars_vec[Form("jet%d_rechit_depth", valid_jet)]   = rechit_values.at(3); // 
+		}
+
 		valid_jet += 1;
+		if (first_valid_jet == -1) first_valid_jet = i;
 	}
-	tree_output_vars_int["validJet"]	= valid_jet;
+
+	tree_output_vars_int["validJet"] = valid_jet;
 
 	for (int i = 0; i < n_gLLP; i++) {
 		float decay_radius = gLLP_DecayVtx_R.at(i); // GetDecayRadiusHB_LLP(i); // -999 default value
@@ -607,6 +765,9 @@ void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename ){
 		tree_output_vars_float[Form("LLP%d_RechitEnergy", i)] = energy[4][3];
 	}
 
+	for( auto lt_rw: list_lifetime_rw_str ) 
+		tree_output_vars_float[Form("weight_ctau_%s", lt_rw.c_str())] = GetLifetimeReweight( std::stof(lt_rw), tree_output_vars_float["LLP0_DecayCtau"], tree_output_vars_float["LLP1_DecayCtau"] );
+
 	for (int i = 0; i < gLLPDecay_iParticle.size(); i++) { // size is 4
 		int idx_gParticle = gLLPDecay_iParticle.at(i);
 		tree_output_vars_float[Form("LLPDecay%d_Pt", i)]    = gParticle_Pt->at(idx_gParticle);
@@ -632,12 +793,8 @@ void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename ){
 		tree_output_vars_float[Form("LLP%d_isTruthMatched_Jet100Eta", gLLPDecay_iLLP.at(i))] = LLPIsTruthMatched( i, 100 ).second;
 	}
 
-	MyTags event_based = MyTags(/*event_based=*/ true, /*calor_only=*/ false);
-	if( EventValidForBDTEval() ){
-		for( const auto & bdt_tag: event_based.bdt_tags() ) {
-			tree_output_vars_float[Form("bdtscore_%s", bdt_tag.c_str())] = GetBDTScores(bdt_tag);
-		}
-	} 
+	// Random Float
+	tree_output_vars_float["randomFloat"] = randomGenerator->Rndm(); 
 
 	tree_output[treename]->Fill();
 	
@@ -646,7 +803,7 @@ void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename ){
 }	
 
 /* ====================================================================================================================== */
-void DisplacedHcalJetAnalyzer::FillOutputJetTrees( string treename, int jetIndex ){ 
+void DisplacedHcalJetAnalyzer::FillOutputJetTrees( string treename, int jetIndex, map<string, bool> Pass_EventSelections ){ 
 	// for the output trees that are filled on a per jet basis
 
 	if( debug ) cout<<"DisplacedHcalJetAnalyzer::FillOutputJetTrees()"<<endl;
@@ -655,9 +812,15 @@ void DisplacedHcalJetAnalyzer::FillOutputJetTrees( string treename, int jetIndex
 
 	ResetOutputBranches( treename );
 
+	// Fill Pass_EventSelections
+	for( const auto &pair : Pass_EventSelections )
+		jet_tree_output_vars_bool[pair.first] = pair.second;
+	
 	jet_tree_output_vars_int["run"] 		= runNum;
 	jet_tree_output_vars_int["lumi"] 		= lumiNum;
 	jet_tree_output_vars_int["event"] 		= eventNum;
+	jet_tree_output_vars_int["jetIndex"] 	= jetIndex;
+	jet_tree_output_vars_int["PV"] 			= n_PV;
 	jet_tree_output_vars_int["jet"]			= n_jet;
 	jet_tree_output_vars_int["ele"]			= n_ele;
 	jet_tree_output_vars_int["muon"]		= n_muon;
@@ -667,6 +830,12 @@ void DisplacedHcalJetAnalyzer::FillOutputJetTrees( string treename, int jetIndex
 	for (int i = 0; i < HLT_Indices.size(); i++) { 
 		jet_tree_output_vars_bool[HLT_Names[i]] = HLT_Decision->at(i);
 	}
+
+	float deltaR_jet_l1jet; 
+	bool JetPassL1Trigger = JetPassesHWQual( jetIndex, deltaR_jet_l1jet );
+
+	jet_tree_output_vars_float["perJet_dR_L1jet"] = deltaR_jet_l1jet;
+	if (deltaR_jet_l1jet < 0.4) jet_tree_output_vars_int["perJet_L1trig_Matched"] = (int)JetPassL1Trigger;
 
 	jet_tree_output_vars_float["perJet_E"] 			= jet_E->at(jetIndex);
 	jet_tree_output_vars_float["perJet_Pt"] 		= jet_Pt->at(jetIndex);
@@ -712,19 +881,32 @@ void DisplacedHcalJetAnalyzer::FillOutputJetTrees( string treename, int jetIndex
 	jet_tree_output_vars_float["perJet_LeadingRechitE"] 		= energeticRechits[0].first;
 	jet_tree_output_vars_float["perJet_SubLeadingRechitE"] 		= energeticRechits[1].first;
 	jet_tree_output_vars_float["perJet_SSubLeadingRechitE"] 	= energeticRechits[2].first;
+	jet_tree_output_vars_float["perJet_Frac_LeadingRechitE"] 	= energeticRechits[0].first / jet_E->at(jetIndex);
+	jet_tree_output_vars_float["perJet_Frac_SubLeadingRechitE"] = energeticRechits[1].first / jet_E->at(jetIndex);
+	jet_tree_output_vars_float["perJet_Frac_SSubLeadingRechitE"]= energeticRechits[2].first / jet_E->at(jetIndex);
 	jet_tree_output_vars_float["perJet_AllRechitE"] 			= energeticRechits[3].first;
 	jet_tree_output_vars_int["perJet_LeadingRechitD"] 			= energeticRechits[0].second;
-	
+
+	jet_tree_output_vars_int["perJet_DepthTowers"]				= GetDepthTowers_Jet(jetIndex, 0.4);
+
+	vector<float> TDC_TDCenergy = GetTDCavg_Jet(jetIndex, 0.4); // TDC average, energy weighted TDC
+	jet_tree_output_vars_float["perJet_TDCavg"] 				= TDC_TDCenergy[0];
+	jet_tree_output_vars_float["perJet_TDCavg_energyWeight"] 	= TDC_TDCenergy[1];
+	jet_tree_output_vars_float["perJet_TDCnDelayed"] 			= TDC_TDCenergy[2];
+	jet_tree_output_vars_float["perJet_Timeavg"] 				= TDC_TDCenergy[3];
+
 	// find three highest pT tracks matched to a jet, and save the generalTrack index for use later (in dzToPV and dzyToBS)
 	vector<uint> jet_track_index = jet_TrackIndices->at(jetIndex);
 	vector<pair<float, float>> track_pt_index = TrackMatcher(jetIndex, jet_track_index);
 
 	for (int track = 0; track < 3; track++) {
 		jet_tree_output_vars_float[Form("perJet_Track%dPt", track)] = 0; // default value for track pT (in case no tracks are matched)
+		jet_tree_output_vars_float[Form("perJet_Frac_Track%dPt", track)] = 0; // default value for fractional track pT (in case no tracks are matched)
 		jet_tree_output_vars_float[Form("perJet_Track%ddR", track)] = 0.5; // default value for track dR (in case no tracks are matched)
 		jet_tree_output_vars_float[Form("perJet_Track%ddEta", track)] = 0.5;
 		jet_tree_output_vars_float[Form("perJet_Track%ddPhi", track)] = 0.5;
 	}
+
 	if (track_pt_index.size() > 0) {
 		std::sort (track_pt_index.begin(), track_pt_index.end(), greater<pair<float, float>>()); // sort to find highest pt tracks
 //		int n_track = std::min(3, (int) jet_track_index.size());
@@ -736,34 +918,38 @@ void DisplacedHcalJetAnalyzer::FillOutputJetTrees( string treename, int jetIndex
 			// could put requirement here that track matches with PV
 			valid_tracks += 1; 
 			if (valid_tracks > 3) continue;
-			jet_tree_output_vars_float[Form("perJet_Track%dPt", track)] 			= track_pt_index[track].first;
-			jet_tree_output_vars_float[Form("perJet_Track%ddzToPV", track)] 		= track_dzToPV->at(track_num); 
-			jet_tree_output_vars_float[Form("perJet_Track%ddxyToBS", track)] 		= track_dxyToBS->at(track_num); 
-			jet_tree_output_vars_float[Form("perJet_Track%ddzOverErr", track)]		= track_dzToPV->at(track_num) / track_dzErr->at(track_num); 
-			jet_tree_output_vars_float[Form("perJet_Track%ddxyOverErr", track)] 	= track_dxyToBS->at(track_num) / track_dxyErr->at(track_num); 
+			jet_tree_output_vars_float[Form("perJet_Track%dPt", valid_tracks -1)] 			= track_Pt->at(track_num); // track_pt_index[track].first;
+			jet_tree_output_vars_float[Form("perJet_Frac_Track%dPt", valid_tracks -1)] 		= track_Pt->at(track_num) / jet_Pt->at(jetIndex); 
+			jet_tree_output_vars_float[Form("perJet_Track%ddzToPV", valid_tracks -1)] 		= track_dzToPV->at(track_num); 
+			jet_tree_output_vars_float[Form("perJet_Track%ddxyToBS", valid_tracks -1)] 		= track_dxyToBS->at(track_num); 
+			jet_tree_output_vars_float[Form("perJet_Track%ddzOverErr", valid_tracks -1)]	= track_dzToPV->at(track_num) / track_dzErr->at(track_num); 
+			jet_tree_output_vars_float[Form("perJet_Track%ddxyOverErr", valid_tracks -1)] 	= track_dxyToBS->at(track_num) / track_dxyErr->at(track_num); 
 
-			jet_tree_output_vars_float[Form( "perJet_Track%ddR", track) ] 		= DeltaR( jet_Eta->at(jetIndex), track_Eta->at(track_num), jet_Phi->at(jetIndex), track_Phi->at(track_num) ); 
-			jet_tree_output_vars_float[Form( "perJet_Track%ddEta", track) ] 	= jet_Eta->at(jetIndex) - track_Eta->at(track_num);
-			jet_tree_output_vars_float[Form( "perJet_Track%ddPhi", track) ] 	= deltaPhi( jet_Phi->at(jetIndex), track_Phi->at(track_num) ); 
-			if (track == 1) {									// dR for two leading tracks
+			jet_tree_output_vars_float[Form( "perJet_Track%ddR", valid_tracks -1) ] 		= DeltaR( jet_Eta->at(jetIndex), track_Eta->at(track_num), jet_Phi->at(jetIndex), track_Phi->at(track_num) ); 
+			jet_tree_output_vars_float[Form( "perJet_Track%ddEta", valid_tracks -1) ] 		= jet_Eta->at(jetIndex) - track_Eta->at(track_num);
+			jet_tree_output_vars_float[Form( "perJet_Track%ddPhi", valid_tracks -1) ] 		= DeltaPhi( jet_Phi->at(jetIndex), track_Phi->at(track_num) ); 
+			if (valid_tracks == 1 && track_Pt->at(track_num) > 0) {
+				jet_tree_output_vars_float["perJet_Tracks_dR"] 	= 1; // default for if second track doesn't pass, set tracks_dR to 1
+			}
+			if (valid_tracks == 2 && track_Pt->at(track_num) > 0) {	// dR for two leading tracks, make sure both tracks are within 0.4 of jet and have valid pT
 				jet_tree_output_vars_float["perJet_Tracks_dR"] 	= DeltaR( track_Eta->at(track_pt_index[0].second), track_Eta->at(track_num), track_Phi->at(track_pt_index[0].second), track_Phi->at(track_num) );
 			}
 		}
 	} // end of track matching 
 
-	MyTags jet_based = MyTags(/*event_based=*/ false, /*calor_only=*/ false);
-	if( EventValidForBDTEval() ){
-		for(const auto & bdt_tag: jet_based.bdt_tags() ) {
-			jet_tree_output_vars_float[Form("bdtscore_%s", bdt_tag.c_str())] = GetBDTScores(bdt_tag);
-		}
-	}
+	// Save HCAL Rechits // 
 
-	MyTags jet_based_calor = MyTags(/*event_based=*/ false, /*calor_only=*/ true);
-	if( EventValidForBDTEval() ){
-		for(const auto & bdt_tag: jet_based_calor.bdt_tags() ) {
-			jet_tree_output_vars_float[Form("bdtscore_%s", bdt_tag.c_str())] = GetBDTScores(bdt_tag);
-		}
+	if( JetPassL1Trigger ){ // only fill if L1 triggered jet
+		vector<vector<float>> rechit_values = GetHcalRechitValues_Jet(jetIndex);
+		
+		jet_tree_output_vars_vec["perJet_rechit_E"]       = rechit_values.at(0);
+		jet_tree_output_vars_vec["perJet_rechit_reliEta"] = rechit_values.at(1);
+		jet_tree_output_vars_vec["perJet_rechit_reliPhi"] = rechit_values.at(2);
+		jet_tree_output_vars_vec["perJet_rechit_depth"]   = rechit_values.at(3); // 
 	}
+	
+	// Random Float
+	jet_tree_output_vars_float["randomFloat"] = randomGenerator->Rndm(); 
 
 	jet_tree_output[treename]->Fill();
 	

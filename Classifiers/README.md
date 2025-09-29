@@ -1,19 +1,46 @@
-# Kat's Branch -- Classifiers
+# Use of DNN Classifier
 
-**1. runner.py**
-Self-contained script that can train (and save the model), evaluate, and write classifier scores to root files (which also includes previous information in the branch). The script has a binary and multi-class mode. The normalization constants are stored in the norm_constants.csv file. For now, only the writing of multi-class scores to root files is implemented.
+Two DNN classifiers are trained, one as a depth jet tagger, the other as an inclusive jet tagger. A virtual environment is used to do the training and score evaluations:
 
-**2. requirements.txt**
-List of all packages within the environment used in SWAN to train and test the models.
+```
+source ../Run/Condor/VirtualEnvs/keras2pt13pt1/bin/activate
 
-**3. keras models**
-Uploaded some trained .keras models; dense_binary is for binary classification, dense_model should be for multi-classification. The runner.py script handles these models in the 'eval' and 'filewrite' modes.
+python3 runner-v4.py
+python3 runner-v4-depth.py
 
-**4. runner-V2.py**
-No longer need separate train and test files. Added running of inclusive tagger within the same run of the script as the depth tagger. First run in train mode to obtain the models: see relevant section of main() and uncomment the relevant section. Remember to modify the name for each model. Eval and filewrite mode: need to add method of sequentially running this too (soon). 
+python3 ScoresToEventBased-v4.py <option-filename.root>
+```
 
-**5. All other images**
-Currently having issues with opening up plots on SWAN and Lxplus, so temporary solution is to visualise them on GitHub. This can be ignored.
+Need to run the inclusive tagger before the depth tagger training can be run, since depth training is done in the CR! 
 
-**6. running.py**
-This is the main script for training and evaluating the 3DCNN using the 3D jet images in the form of .h5 files. This code is originally ran on SWAN using a GPU. The code is designed to train and evaluate the 3DCNN models imported from the models.py script, and can plot metrics such as the ROC curve. To run, select the train option first so that the model is trained and saved in.keras format, and which can then be evaluated. If the file paths are changed, the code should run as it is -- in the current configuration to train a 3DCNN, save it, and plot the ROC curve.
+List files to train over and to write scores to in these scripts. The output DNNs are `dense_model_v4.keras` and `inclusive_model_v4.keras`.
+
+## Plot DNN Scores
+DNN scores for the signal and background are plotted with a python script. 
+```
+python3 PlotScoresDNN.py
+```
+Options are mode (signal, background, overlay, different eras), normalize, and train 40 vs train 80. The script is run:
+```
+python3 PlotScoresDNN_v2.py --mode signal --normalize
+python3 PlotScoresDNN_v2.py --mode background --normalize
+python3 PlotScoresDNN_v2.py --mode overlay --normalize
+python3 PlotScoresDNN_v2.py --mode background_overlay --normalize
+```
+
+## Custom ROC Curve Plots
+```
+root -b -q -l MakeDNNPerformancePlots_SigBkg.C
+```
+The input root files are listed in the script. 
+
+## Environment Details
+
+Note that the training and evaluation of the DNN model is done in a python virtual environment created from `requirements_minimal.txt`. The full instructions for creating this are in the [Condor README](https://github.com/gk199/Run3-HCAL-LLP-Analysis/tree/dev-gillian/Run/Condor#debugging-issues-with-dnn-score-addition). 
+
+Creation of python virtual environment for training and evaluation of the DNNs:
+```
+python3.9 -m venv keras2pt13pt1
+source keras2pt13pt1/bin/activate
+pip install -r ../../../Classifiers/requirements_minimal.txt
+```

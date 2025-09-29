@@ -23,9 +23,10 @@
 #include <TLorentzVector.h>
 #include <TVector3.h>
 
+
 #include <TStyle.h>
 #include <TCanvas.h>
-
+#include "TRandom3.h"
 #include <TMath.h>
 
 //#include "Math/GSLMinimizer.h"
@@ -35,115 +36,21 @@
 
 #include <vector>
 #include <algorithm>
+#include <cmath>
 
 #ifdef __ROOTCLING__
 #pragma link C++ class vector<vector <float> >+;
 #pragma link C++ class vector<vector <int> >+;
 #endif
 
-// TODO: Load bdt variables from xml file manually
-// #include "../../pugixml/pugixml.hpp"
-//gSystem->Load("../../pugixml/pugixml.hpp") //"$PROJECT/lib/libCustomClass.so")
-//R__LOAD_LIBRARY(../../pugixml/pugixml.hpp)
-// R__LOAD_LIBRARY($PROJECT/lib/libCustomClass.so)
-//using namespace pugi;
-
-
-// Header file for the classes stored in the TTree if any.
 #include "vector"
 #include "map"
 #include "iostream"
 #include "iomanip" 
 
-/* ====================================================================================================================== */
-class MyTags {
-	public:
-		MyTags(bool event_based, bool calor_only) {
-			if (event_based) {
-				bdt_tags_ = bdt_event_tags_;
-				bdt_var_names_ = {
-               //"jet0_Pt","jet0_Phi","jet0_E",
-               "jet0_Eta",
-               "jet0_ChargedHadEFrac",
-               "jet0_NeutralHadEFrac",
-               "jet0_PhoEFrac",
-               "jet0_EleEFrac",
-               // "jet0_MuonEFrac",
-               "jet0_Track0Pt/jet0_Pt",
-               // "jet0_Track0dR",
-               "jet0_Track0dEta",
-               "jet0_Track0dPhi",
-               "jet0_Track1Pt/jet0_Pt",
-               // "jet0_Track1dR",
-               "jet0_Track1dEta",
-               "jet0_Track1dPhi",
-               "jet0_EnergyFrac_Depth1",
-               "jet0_EnergyFrac_Depth2",
-               "jet0_EnergyFrac_Depth3",
-               "jet0_S_phiphi",
-               "jet0_LeadingRechitE/jet0_E",
-				};
-			} else {
-            if (calor_only) {
-				   bdt_tags_ = bdt_jet_tags_calor_;
-               bdt_var_names_ = {
-                  "perJet_Eta", "perJet_EnergyFrac_Depth1", "perJet_EnergyFrac_Depth2", "perJet_EnergyFrac_Depth3", "perJet_S_phiphi", "perJet_LeadingRechitE/perJet_E",
-               };
-            }
-            else {
-				   bdt_tags_ = bdt_jet_tags_;
-               bdt_var_names_ = {
-                  "perJet_Eta",
-                  "perJet_ChargedHadEFrac",
-                  "perJet_NeutralHadEFrac",
-                  "perJet_PhoEFrac",
-                  "perJet_EleEFrac",
-                  // "perJet_MuonEFrac",
-                  "perJet_Track0Pt/perJet_Pt",
-                  // "perJet_Track0dR",
-                  "perJet_Track0dEta",
-                  "perJet_Track0dPhi",
-                  "perJet_Track1Pt/perJet_Pt",
-                  // "perJet_Track1dR",
-                  "perJet_Track1dEta",
-                  "perJet_Track1dPhi",
-                  "perJet_EnergyFrac_Depth1",
-                  "perJet_EnergyFrac_Depth2",
-                  "perJet_EnergyFrac_Depth3",
-                  "perJet_S_phiphi",
-                  "perJet_LeadingRechitE/perJet_E",
-               };
-            }
-			}
-		}
+#include "TXMLEngine.h"
 
-		vector<string> bdt_tags() const {
-			return bdt_tags_;
-		}
-		vector<string> bdt_var_names() const {
-			return bdt_var_names_;
-		}
-
-      static bool isValidTag(string tag) {
-         if ( std::find(bdt_event_tags_.begin(), bdt_event_tags_.end(), tag) != bdt_event_tags_.end() ) return true;
-         if ( std::find(bdt_jet_tags_.begin(), bdt_jet_tags_.end(), tag) != bdt_jet_tags_.end() ) return true;
-         if ( std::find(bdt_jet_tags_calor_.begin(), bdt_jet_tags_calor_.end(), tag) != bdt_jet_tags_calor_.end() ) return true;
-         return false;
-      }
-		
-	private:
-		vector<string> bdt_tags_;
-		vector<string> bdt_var_names_;
-
-      inline static vector<string> bdt_event_tags_ = {"hadd"}; //  {"LLP125_MS15", "LLP350_MS80",  "LLP125_MS50", "LLP250_MS120", "LLP350_MS160", "hadd"};
-      inline static vector<string> bdt_jet_tags_ = {"LLP125_MS15_perJet", "LLP350_MS80_perJet", "LLP125_MS50_perJet", "LLP250_MS120_perJet", "LLP350_MS160_perJet", "hadd_perJet",
-                                                   "LLP125_MS15_HCAL12_perJet", "LLP350_MS80_HCAL12_perJet", "LLP125_MS50_HCAL12_perJet", "LLP250_MS120_HCAL12_perJet", "LLP350_MS160_HCAL12_perJet", "hadd_HCAL12_perJet",
-                                                   "LLP125_MS15_HCAL34_perJet", "LLP350_MS80_HCAL34_perJet", "LLP125_MS50_HCAL34_perJet", "LLP250_MS120_HCAL34_perJet", "LLP350_MS160_HCAL34_perJet", "hadd_HCAL34_perJet"};
-      inline static vector<string> bdt_jet_tags_calor_ = {}; //  {"LLP125_MS15_calor_perJet", "LLP350_MS80_calor_perJet", "LLP125_MS50_calor_perJet", "LLP250_MS120_calor_perJet", "LLP350_MS160_calor_perJet", "hadd_calor_perJet",
-                                                   // "LLP125_MS15_HCAL12_calor_perJet", "LLP350_MS80_HCAL12_calor_perJet", "LLP125_MS50_HCAL12_calor_perJet", "LLP250_MS120_HCAL12_calor_perJet", "LLP350_MS160_HCAL12_calor_perJet", "hadd_HCAL12_calor_perJet",
-                                                   // "LLP125_MS15_HCAL34_calor_perJet", "LLP350_MS80_HCAL34_calor_perJet", "LLP125_MS50_HCAL34_calor_perJet", "LLP250_MS120_HCAL34_calor_perJet", "LLP350_MS160_HCAL34_calor_perJet", "hadd_HCAL34_calor_perJet"};
-                                                   
-};
+using namespace std;
 
 class DisplacedHcalJetAnalyzer {
 public :
@@ -160,12 +67,17 @@ public :
    bool blind_data     = false;
 
    float weight = 1;
+   float weight_unskimmed = 1;
+   double lumi_samplefrac = 1.0;
 
    Long64_t NEvents   = -1; 
    Long64_t NEvents_HLT = -1;
 
    // Numbers for cutflow
    map<string, Double32_t> count; //Long64_t
+
+   // Random number generator
+   TRandom3 *randomGenerator = new TRandom3();
 
    // ----- My Hists ----- //
 
@@ -176,10 +88,12 @@ public :
 
    // ----- TMVA Reader ----- //
 
+   string bdt_version;
    vector<string> bdt_tags;
    map<string,TMVA::Reader*> bdt_reader;
    map<string,vector<string>> bdt_var_names;
-   map<string,Float_t> bdt_vars;   
+   map<string,Float_t> bdt_vars;
+   map<string,Float_t*> bdt_vars_pointer;
 
    // ----- My Output Tree ----- //
    
@@ -189,6 +103,7 @@ public :
    map<string,int>      tree_output_vars_int;  
    map<string,float>    tree_output_vars_float;  
    map<string,string>   tree_output_vars_string;
+   map<string,vector<float>>  tree_output_vars_vec;
 
    vector<string> jet_treenames;
    map<string,TTree*>   jet_tree_output;
@@ -196,6 +111,7 @@ public :
    map<string,int>      jet_tree_output_vars_int;  
    map<string,float>    jet_tree_output_vars_float;  
    map<string,string>   jet_tree_output_vars_string;
+   map<string,vector<float>>  jet_tree_output_vars_vec;
 
    // ----- Globals ----- //
 
@@ -209,7 +125,17 @@ public :
    vector<float> gLLP_DecayVtx_R;
    vector<float> gLLP_DecayVtx_Mag;
 
+   float ctau_sample = -1;
+   vector<string> list_lifetime_rw_str;
+
    float WPlusJets_leptonPhi = -9999.9;
+   float Z_mass = -9999.9;
+   float Muon_PhiVectorSum = -9999.9;
+
+   int N_PFJets_ToSave = 4;
+
+   int jetIndex_DepthTagCand = -1;
+   int jetIndex_InclTagCand = -1;
 
    // ----- Variables ----- //
 
@@ -326,6 +252,10 @@ public :
    vector<int>     *jet_PhoMult;
    vector<int>     *jet_EleMult;
    vector<int>     *jet_MuonMult;
+   vector<float>   *jet_DeepCSV_prob_b;
+   vector<float>   *jet_DeepCSV_prob_c;
+   vector<float>   *jet_DeepCSV_prob_bb;
+   vector<float>   *jet_DeepCSV_prob_udsg;
    vector<float>   *jet_PtAllTracks;
    vector<float>   *jet_PtAllPVTracks;
    vector<int>     *jet_NVertexTracks;
@@ -519,6 +449,34 @@ public :
    vector<float>   *gLLP_ProdVtx_X;
    vector<float>   *gLLP_ProdVtx_Y;
    vector<float>   *gLLP_ProdVtx_Z;
+   bool Flag_HBHENoiseFilter;
+   bool Flag_HBHENoiseIsoFilter;
+   bool Flag_CSCTightHaloFilter;
+   bool Flag_CSCTightHaloTrkMuUnvetoFilter;
+   bool Flag_CSCTightHalo2015Filter;
+   bool Flag_globalTightHalo2016Filter;
+   bool Flag_globalSuperTightHalo2016Filter;
+   bool Flag_HcalStripHaloFilter;
+   bool Flag_hcalLaserEventFilter;
+   bool Flag_EcalDeadCellTriggerPrimitiveFilter;
+   bool Flag_EcalDeadCellBoundaryEnergyFilter;
+   bool Flag_ecalBadCalibFilter;
+   bool Flag_goodVertices;
+   bool Flag_eeBadScFilter;
+   bool Flag_ecalLaserCorrFilter;
+   bool Flag_trkPOGFilters;
+   bool Flag_chargedHadronTrackResolutionFilter;
+   bool Flag_muonBadTrackFilter;
+   bool Flag_BadChargedCandidateFilter;
+   bool Flag_BadPFMuonFilter;
+   bool Flag_BadPFMuonDzFilter;
+   bool Flag_hfNoisyHitsFilter;
+   bool Flag_BadChargedCandidateSummer16Filter;
+   bool Flag_BadPFMuonSummer16Filter;
+   bool Flag_trkPOG_manystripclus53X;
+   bool Flag_trkPOG_toomanystripclus53X;
+   bool Flag_trkPOG_logErrorTooManyClusters;
+   bool Flag_METFilters_2022_2023_PromptReco;
 
    // List of branches
    TBranch        *b_isData;   //!
@@ -631,6 +589,10 @@ public :
    TBranch        *b_jet_PhoMult;   //!
    TBranch        *b_jet_EleMult;   //!
    TBranch        *b_jet_MuonMult;   //!
+   TBranch        *b_jet_DeepCSV_prob_b;   //!
+   TBranch        *b_jet_DeepCSV_prob_c;   //!
+   TBranch        *b_jet_DeepCSV_prob_bb;   //!
+   TBranch        *b_jet_DeepCSV_prob_udsg;   //!
    TBranch        *b_jet_PtAllTracks;   //!
    TBranch        *b_jet_PtAllPVTracks;   //!
    TBranch        *b_jet_NVertexTracks;   //!
@@ -824,6 +786,34 @@ public :
    TBranch        *b_gLLP_ProdVtx_X;   //!
    TBranch        *b_gLLP_ProdVtx_Y;   //!
    TBranch        *b_gLLP_ProdVtx_Z;   //!
+   TBranch        *b_Flag_HBHENoiseFilter;   //!
+   TBranch        *b_Flag_HBHENoiseIsoFilter;   //!
+   TBranch        *b_Flag_CSCTightHaloFilter;   //!
+   TBranch        *b_Flag_CSCTightHaloTrkMuUnvetoFilter;   //!
+   TBranch        *b_Flag_CSCTightHalo2015Filter;   //!
+   TBranch        *b_Flag_globalTightHalo2016Filter;   //!
+   TBranch        *b_Flag_globalSuperTightHalo2016Filter;   //!
+   TBranch        *b_Flag_HcalStripHaloFilter;   //!
+   TBranch        *b_Flag_hcalLaserEventFilter;   //!
+   TBranch        *b_Flag_EcalDeadCellTriggerPrimitiveFilter;   //!
+   TBranch        *b_Flag_EcalDeadCellBoundaryEnergyFilter;   //!
+   TBranch        *b_Flag_ecalBadCalibFilter;   //!
+   TBranch        *b_Flag_goodVertices;   //!
+   TBranch        *b_Flag_eeBadScFilter;   //!
+   TBranch        *b_Flag_ecalLaserCorrFilter;   //!
+   TBranch        *b_Flag_trkPOGFilters;   //!
+   TBranch        *b_Flag_chargedHadronTrackResolutionFilter;   //!
+   TBranch        *b_Flag_muonBadTrackFilter;   //!
+   TBranch        *b_Flag_BadChargedCandidateFilter;   //!
+   TBranch        *b_Flag_BadPFMuonFilter;   //!
+   TBranch        *b_Flag_BadPFMuonDzFilter;   //!
+   TBranch        *b_Flag_hfNoisyHitsFilter;   //!
+   TBranch        *b_Flag_BadChargedCandidateSummer16Filter;   //!
+   TBranch        *b_Flag_BadPFMuonSummer16Filter;   //!
+   TBranch        *b_Flag_trkPOG_manystripclus53X;   //!
+   TBranch        *b_Flag_trkPOG_toomanystripclus53X;   //!
+   TBranch        *b_Flag_trkPOG_logErrorTooManyClusters;   //!
+   TBranch        *b_Flag_METFilters_2022_2023_PromptReco;   //!
 
    DisplacedHcalJetAnalyzer(TTree *tree=0);
    virtual ~DisplacedHcalJetAnalyzer();
@@ -841,22 +831,29 @@ public :
    virtual void   ProcessEvent( Long64_t jentry );
    // TriggerHelper.cxx
    virtual void   SetTriggerNames( string infilepath, string hist_name );
-   // Object Helper.cxx
+   // ObjectHelper.cxx
    virtual float  DeltaR( float eta1, float eta2, float phi1, float phi2);
-   virtual double deltaPhi( double phi1, double phi2);
-   // virtual double deltaR( double eta1, double phi1, double eta2, double phi2);
-   virtual vector<int> GetRechitMult( int idx_llp, float deltaR_cut );
-   virtual vector<vector<float>> GetEnergyProfile( int idx_llp, float deltaR_cut );
-   virtual vector<float> GetMatchedHcalRechits_Jet( int idx_jet, float deltaR_cut );
-   virtual vector<float> GetEnergyProfile_Jet( int idx_jet, float deltaR_cut );
+   virtual double DeltaPhi( double phi1, double phi2);
+   virtual bool   JetPassesHWQual( int jet_index, float &deltaR );
+   virtual bool   IsMuonIsolatedTight( int muon_index ); 
+   virtual float  GetElectronEffectiveAreaMean( int ele_index );
+   virtual bool   IsElectronIsolatedTight( int ele_index );
+   virtual float  TransverseLeptonMass( float pT, float phi );
+   virtual float  PhiVectorSum( float pT, float phi );
+   // HcalRechitHelper.cxx
+   virtual vector<int>             GetRechitMult( int idx_llp, float deltaR_cut );
+   virtual vector<float>           GetMatchedHcalRechits_Jet( int idx_jet, float deltaR_cut );
+   virtual vector<vector<float>>   GetHcalRechitValues_Jet( int idx_jet );
+   virtual vector<vector<float>>   GetEnergyProfile( int idx_llp, float deltaR_cut );
+   virtual vector<float>           GetEnergyProfile_Jet( int idx_jet, float deltaR_cut );
    virtual vector<pair<float,int>> Get3RechitE_Jet( int idx_jet, float deltaR_cut );
-   virtual vector<float> GetEtaPhiSpread_Jet( int idx_jet, float deltaR_cut );
-   virtual vector<float> GetTDCavg_Jet( int idx_jet, float deltaR_cut );
-   virtual bool IsMuonIsolatedTight( int muon_index ); 
-   virtual float GetElectronEffectiveAreaMean( int ele_index );
-   virtual bool IsElectronIsolatedTight( int ele_index );
-   virtual float TransverseLeptonMass( float pT, float phi );
-   virtual float PhiVectorSum( float pT, float phi );
+   virtual vector<float>           GetEtaPhiSpread_Jet( int idx_jet, float deltaR_cut );
+   virtual int                     GetTimingTowers_Jet( int idx_jet, float deltaR_cut );
+   virtual int                     GetDepthTowers_Jet( int idx_jet, float deltaR_cut );
+   virtual int                     GetDepthTowers_Jet_lowE( int idx_jet, float deltaR_cut );
+   virtual int                     GetTotalTowers_Jet( int idx_jet, float deltaR_cut );
+   virtual vector<float>           GetTDCavg_Jet( int idx_jet, float deltaR_cut );
+
    // TruthInfoHelper.cxx
    virtual void   SetLLPVariables();
    virtual bool   isRechitValid(float RechitEnergy, int RechitDepth);
@@ -869,29 +866,42 @@ public :
    virtual pair<bool,float> LLPDecayIsTruthMatched_LLP_b( int idx_gLLP, int idx_gParticle, float jetPt_cut=0, float deltaR_cut=0.4 );
    virtual pair<bool,float> LLPIsTruthMatched( int idx_gLLPDecay, float jetPt_cut=0, float deltaR_cut=0.4 );
    virtual vector<TVector3> GetLLPDecayProdCoords(int idx_llp, int idx_llp_decay, vector<float> intersection_depths); // Deprecated
+   virtual void    InitializeLifetimeReweighting( string infilepath );
+   virtual Float_t GetLifetimeReweight( float ctau_target, float ctau_llp0, float ctau_llp1 );
    // EventHelper.cxx
    virtual float  GetEventRuntime( clock_t clock_start, Long64_t init_entry, Long64_t current_entry );
    virtual void   ResetGlobalEventVars();
+   virtual bool   PassL1SingleLLPJet();
+   virtual bool   PassHLTDisplacedJet();
+   virtual bool   PassEventPreselection( bool PassedHLT = false, bool PassedWPlusJets = true );
    virtual bool   PassWPlusJetsSelection();
+   virtual bool   PassLeptonVeto();
+   virtual bool   PassZmumuSelection();
    virtual float  EventHT();
    // BDTHelper.cxx
-   virtual void   DeclareTMVAReader( MyTags bdt_tag_info );
-   virtual float  GetBDTScores( string bdt_tag );
+   virtual void   InitializeTMVA(); 
+   virtual bool   BookTMVAReader( string filepath, string bdt_tag );
+   virtual float  GetBDTScores( string bdt_tag, int jet_index = 0 );
    virtual bool   EventValidForBDTEval();
-   vector<string> GetBDTVariableNamesXML( string filepath, bool isSpectator );
+   vector<string> GetBDTVariableNamesXML( string filepath ); 
    // OutputHelper.cxx
    virtual void   DeclareOutputTrees();
    virtual void   DeclareOutputJetTrees();
    virtual void   ResetOutputBranches( string treename );
    virtual vector<pair<float,float>> TrackMatcher( int jetIndex, vector<uint> jet_track_index );
-   virtual void   FillOutputTrees( string treename );
-   virtual void   FillOutputJetTrees( string treename, int jetIndex );
+   virtual void   FillOutputTrees( string treename, map<string, bool> Pass_EventSelections = {} );
+   virtual void   FillOutputJetTrees( string treename, int jetIndex, map<string, bool> Pass_EventSelections = {} );
    virtual void   WriteOutputTrees();
    virtual void   SetHistCategories();
    virtual void   BookHists();
    virtual void   FillHists(string cat = "");
    virtual void   FillTriggerMatchHists(string cat = "");
    virtual void   WriteHists(); 
+   // WeightsHelper.cxx
+   virtual void   SetWeight( string infiletag );
+	virtual double GetNEventsProduced(string infiletag);
+	virtual double GetSignalBRxSigma(string infiletag);
+
 };
 
 #endif
@@ -1035,6 +1045,10 @@ void DisplacedHcalJetAnalyzer::Init(TTree *tree)
    jet_PhoMult = 0;
    jet_EleMult = 0;
    jet_MuonMult = 0;
+   jet_DeepCSV_prob_b = 0;
+   jet_DeepCSV_prob_c = 0;
+   jet_DeepCSV_prob_bb = 0;
+   jet_DeepCSV_prob_udsg = 0;
    jet_PtAllTracks = 0;
    jet_PtAllPVTracks = 0;
    jet_NVertexTracks = 0;
@@ -1217,6 +1231,35 @@ void DisplacedHcalJetAnalyzer::Init(TTree *tree)
    gLLP_ProdVtx_X = 0;
    gLLP_ProdVtx_Y = 0;
    gLLP_ProdVtx_Z = 0;
+   Flag_HBHENoiseFilter = 0;
+   Flag_HBHENoiseIsoFilter = 0;
+   Flag_CSCTightHaloFilter = 0;
+   Flag_CSCTightHaloTrkMuUnvetoFilter = 0;
+   Flag_CSCTightHalo2015Filter = 0;
+   Flag_globalTightHalo2016Filter = 0;
+   Flag_globalSuperTightHalo2016Filter = 0;
+   Flag_HcalStripHaloFilter = 0;
+   Flag_hcalLaserEventFilter = 0;
+   Flag_EcalDeadCellTriggerPrimitiveFilter = 0;
+   Flag_EcalDeadCellBoundaryEnergyFilter = 0;
+   Flag_ecalBadCalibFilter = 0;
+   Flag_goodVertices = 0;
+   Flag_eeBadScFilter = 0;
+   Flag_ecalLaserCorrFilter = 0;
+   Flag_trkPOGFilters = 0;
+   Flag_chargedHadronTrackResolutionFilter = 0;
+   Flag_muonBadTrackFilter = 0;
+   Flag_BadChargedCandidateFilter = 0;
+   Flag_BadPFMuonFilter = 0;
+   Flag_BadPFMuonDzFilter = 0;
+   Flag_hfNoisyHitsFilter = 0;
+   Flag_BadChargedCandidateSummer16Filter = 0;
+   Flag_BadPFMuonSummer16Filter = 0;
+   Flag_trkPOG_manystripclus53X = 0;
+   Flag_trkPOG_toomanystripclus53X = 0;
+   Flag_trkPOG_logErrorTooManyClusters = 0;
+   Flag_METFilters_2022_2023_PromptReco = 0;
+
    // Set branch addresses and branch pointers
    if (!tree) return;
    fChain = tree;
@@ -1334,6 +1377,10 @@ void DisplacedHcalJetAnalyzer::Init(TTree *tree)
    fChain->SetBranchAddress("jet_PhoMult", &jet_PhoMult, &b_jet_PhoMult);
    fChain->SetBranchAddress("jet_EleMult", &jet_EleMult, &b_jet_EleMult);
    fChain->SetBranchAddress("jet_MuonMult", &jet_MuonMult, &b_jet_MuonMult);
+   fChain->SetBranchAddress("jet_DeepCSV_prob_b", &jet_DeepCSV_prob_b, &b_jet_DeepCSV_prob_b);
+   fChain->SetBranchAddress("jet_DeepCSV_prob_c", &jet_DeepCSV_prob_c, &b_jet_DeepCSV_prob_c);
+   fChain->SetBranchAddress("jet_DeepCSV_prob_bb", &jet_DeepCSV_prob_bb, &b_jet_DeepCSV_prob_bb);
+   fChain->SetBranchAddress("jet_DeepCSV_prob_udsg", &jet_DeepCSV_prob_udsg, &b_jet_DeepCSV_prob_udsg);
    fChain->SetBranchAddress("jet_PtAllTracks", &jet_PtAllTracks, &b_jet_PtAllTracks);
    fChain->SetBranchAddress("jet_PtAllPVTracks", &jet_PtAllPVTracks, &b_jet_PtAllPVTracks);
    fChain->SetBranchAddress("jet_NVertexTracks", &jet_NVertexTracks, &b_jet_NVertexTracks);
@@ -1504,8 +1551,7 @@ void DisplacedHcalJetAnalyzer::Init(TTree *tree)
    fChain->SetBranchAddress("gParticle_ParentId", &gParticle_ParentId, &b_gParticle_ParentId);
    fChain->SetBranchAddress("gParticle_Status", &gParticle_Status, &b_gParticle_Status);
    fChain->SetBranchAddress("gParticle_Id", &gParticle_Id, &b_gParticle_Id);
-   fChain->SetBranchAddress("gParticle_Pt", &
-      gParticle_Pt, &b_gParticle_Pt);
+   fChain->SetBranchAddress("gParticle_Pt", &gParticle_Pt, &b_gParticle_Pt);
    fChain->SetBranchAddress("gParticle_Px", &gParticle_Px, &b_gParticle_Px);
    fChain->SetBranchAddress("gParticle_Py", &gParticle_Py, &b_gParticle_Py);
    fChain->SetBranchAddress("gParticle_Pz", &gParticle_Pz, &b_gParticle_Pz);
@@ -1528,6 +1574,35 @@ void DisplacedHcalJetAnalyzer::Init(TTree *tree)
    fChain->SetBranchAddress("gLLP_ProdVtx_X", &gLLP_ProdVtx_X, &b_gLLP_ProdVtx_X);
    fChain->SetBranchAddress("gLLP_ProdVtx_Y", &gLLP_ProdVtx_Y, &b_gLLP_ProdVtx_Y);
    fChain->SetBranchAddress("gLLP_ProdVtx_Z", &gLLP_ProdVtx_Z, &b_gLLP_ProdVtx_Z);
+   fChain->SetBranchAddress("Flag_HBHENoiseFilter", &Flag_HBHENoiseFilter, &b_Flag_HBHENoiseFilter);
+   fChain->SetBranchAddress("Flag_HBHENoiseIsoFilter", &Flag_HBHENoiseIsoFilter, &b_Flag_HBHENoiseIsoFilter);
+   fChain->SetBranchAddress("Flag_CSCTightHaloFilter", &Flag_CSCTightHaloFilter, &b_Flag_CSCTightHaloFilter);
+   fChain->SetBranchAddress("Flag_CSCTightHaloTrkMuUnvetoFilter", &Flag_CSCTightHaloTrkMuUnvetoFilter, &b_Flag_CSCTightHaloTrkMuUnvetoFilter);
+   fChain->SetBranchAddress("Flag_CSCTightHalo2015Filter", &Flag_CSCTightHalo2015Filter, &b_Flag_CSCTightHalo2015Filter);
+   fChain->SetBranchAddress("Flag_globalTightHalo2016Filter", &Flag_globalTightHalo2016Filter, &b_Flag_globalTightHalo2016Filter);
+   fChain->SetBranchAddress("Flag_globalSuperTightHalo2016Filter", &Flag_globalSuperTightHalo2016Filter, &b_Flag_globalSuperTightHalo2016Filter);
+   fChain->SetBranchAddress("Flag_HcalStripHaloFilter", &Flag_HcalStripHaloFilter, &b_Flag_HcalStripHaloFilter);
+   fChain->SetBranchAddress("Flag_hcalLaserEventFilter", &Flag_hcalLaserEventFilter, &b_Flag_hcalLaserEventFilter);
+   fChain->SetBranchAddress("Flag_EcalDeadCellTriggerPrimitiveFilter", &Flag_EcalDeadCellTriggerPrimitiveFilter, &b_Flag_EcalDeadCellTriggerPrimitiveFilter);
+   fChain->SetBranchAddress("Flag_EcalDeadCellBoundaryEnergyFilter", &Flag_EcalDeadCellBoundaryEnergyFilter, &b_Flag_EcalDeadCellBoundaryEnergyFilter);
+   fChain->SetBranchAddress("Flag_ecalBadCalibFilter", &Flag_ecalBadCalibFilter, &b_Flag_ecalBadCalibFilter);
+   fChain->SetBranchAddress("Flag_goodVertices", &Flag_goodVertices, &b_Flag_goodVertices);
+   fChain->SetBranchAddress("Flag_eeBadScFilter", &Flag_eeBadScFilter, &b_Flag_eeBadScFilter);
+   fChain->SetBranchAddress("Flag_ecalLaserCorrFilter", &Flag_ecalLaserCorrFilter, &b_Flag_ecalLaserCorrFilter);
+   fChain->SetBranchAddress("Flag_trkPOGFilters", &Flag_trkPOGFilters, &b_Flag_trkPOGFilters);
+   fChain->SetBranchAddress("Flag_chargedHadronTrackResolutionFilter", &Flag_chargedHadronTrackResolutionFilter, &b_Flag_chargedHadronTrackResolutionFilter);
+   fChain->SetBranchAddress("Flag_muonBadTrackFilter", &Flag_muonBadTrackFilter, &b_Flag_muonBadTrackFilter);
+   fChain->SetBranchAddress("Flag_BadChargedCandidateFilter", &Flag_BadChargedCandidateFilter, &b_Flag_BadChargedCandidateFilter);
+   fChain->SetBranchAddress("Flag_BadPFMuonFilter", &Flag_BadPFMuonFilter, &b_Flag_BadPFMuonFilter);
+   fChain->SetBranchAddress("Flag_BadPFMuonDzFilter", &Flag_BadPFMuonDzFilter, &b_Flag_BadPFMuonDzFilter);
+   fChain->SetBranchAddress("Flag_hfNoisyHitsFilter", &Flag_hfNoisyHitsFilter, &b_Flag_hfNoisyHitsFilter);
+   fChain->SetBranchAddress("Flag_BadChargedCandidateSummer16Filter", &Flag_BadChargedCandidateSummer16Filter, &b_Flag_BadChargedCandidateSummer16Filter);
+   fChain->SetBranchAddress("Flag_BadPFMuonSummer16Filter", &Flag_BadPFMuonSummer16Filter, &b_Flag_BadPFMuonSummer16Filter);
+   fChain->SetBranchAddress("Flag_trkPOG_manystripclus53X", &Flag_trkPOG_manystripclus53X, &b_Flag_trkPOG_manystripclus53X);
+   fChain->SetBranchAddress("Flag_trkPOG_toomanystripclus53X", &Flag_trkPOG_toomanystripclus53X, &b_Flag_trkPOG_toomanystripclus53X);
+   fChain->SetBranchAddress("Flag_trkPOG_logErrorTooManyClusters", &Flag_trkPOG_logErrorTooManyClusters, &b_Flag_trkPOG_logErrorTooManyClusters);
+   fChain->SetBranchAddress("Flag_METFilters_2022_2023_PromptReco", &Flag_METFilters_2022_2023_PromptReco, &b_Flag_METFilters_2022_2023_PromptReco);
+
    Notify();
 }
 

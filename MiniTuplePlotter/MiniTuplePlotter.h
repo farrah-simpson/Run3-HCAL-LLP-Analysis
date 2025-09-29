@@ -57,6 +57,7 @@ public :
 
 	Int_t NBins = 100; 
 	bool set_variable_bins = false;
+	bool variable_binwidth_equal = false;
 	vector<Double_t> Bins_variable;
 
 	// Fit to write to legend
@@ -74,7 +75,7 @@ public :
 	string significance_formula = "ssqrtb";
 
 	// Outputs
-	//TFile *fout;
+	TFile *fout;
 
 	// =====================================================================================
 	// MiniTuplePlotter 
@@ -111,13 +112,13 @@ public :
 		cout<<"Reading in MiniTupleVersion as \""<<MiniTupleVersion<<"\""<<endl;
 		if( debug ) cout<<"    --> If this is incorrect please fix it manually when you declare the instance of the plotter :)"<<endl;
 
-		//fout = new TFile( "Figures/Figures_test.root", "RECREATE");
+		fout = new TFile( "Figures/Figures_test.root", "RECREATE");
 
 	}
 
 	// -------------------------------------------------------------------------------------
 	~MiniTuplePlotter(){
-		//fout->Close();
+		fout->Close();
 	}
 
 	// =====================================================================================
@@ -492,14 +493,15 @@ public :
 
 		if( fit_type.find("exp_decay") != string::npos ){
 
+
 			TF1* fit = new TF1("fit_expdecay","expo"); // exponential decay
 			h->Fit( fit, "Q");
-			float scale  = fit->GetParameter(0);
-			float ctau   = -1/fit->GetParameter(1);
-			float c      = 300.0; // mm/ns
-			double tau   = ctau / c ;
+			float scale  	= fit->GetParameter(0);
+			float decay_len = -1/fit->GetParameter(1);
+			//float c      = 300.0; // mm/ns
+			//double tau   = ctau / c ;
 			//fit_info_str += Form("c#tau = %.2f mm, #tau = %.2f ns, ", ctau, tau );
-			fit_info_str += Form("decaylen = %.2f %s", ctau, units.c_str() );
+			fit_info_str += Form("decay_len = %.1f, scale = %.1f", decay_len, scale); //, ctau, units.c_str() );
 
 		}	
 
@@ -521,10 +523,11 @@ public :
 	// =====================================================================================
 
 	// -------------------------------------------------------------------------------------
-	void SetVariableBins( vector<Double_t> Bins_variable_temp ){
+	void SetVariableBins( vector<Double_t> Bins_variable_temp, bool variable_binwidth_equal_temp = false ){
 		if( debug) cout<<"MiniTuplePlotter::SetVariableBins()"<<endl;		
 
 		set_variable_bins = true;
+		variable_binwidth_equal = variable_binwidth_equal_temp;
 		Bins_variable = Bins_variable_temp;
 
 	}
@@ -562,8 +565,26 @@ public :
 
 		if( debug ) cout<<"  Drawing: "<<Form( "%s >> "+hist_name_full, hist_name.c_str() )<<endl;
 
-		trees[filetag_treename]->Draw( Form( "%s >> "+hist_name_full, hist_name.c_str() ), cut_total , "");					
-		TH1F *h = (TH1F*)h_temp->Clone(); 
+		trees[filetag_treename]->Draw( Form( "%s >> "+hist_name_full, hist_name.c_str() ), cut_total , "");	
+
+		TH1F *h;
+
+		if( variable_binwidth_equal ){
+			const int NBins_temp = Bins_variable.size() - 1;
+			TH1F *h_equal = new TH1F(hist_name_full+"equal", "", NBins_temp, Bins_variable.at(0), Bins_variable.at(NBins_temp) );
+			for (int i = 1; i <= NBins_temp; i++) {
+				h_equal->SetBinContent(i, h_temp->GetBinContent(i));
+				h_equal->SetBinError(i, h_temp->GetBinError(i));
+
+				double lower = h_temp->GetBinLowEdge(i);
+				double upper = lower + h_temp->GetBinWidth(i);
+				h_equal->GetXaxis()->SetBinLabel(i, Form("%.2f - %.2f", lower, upper));
+			}
+			//h_equal->GetXaxis()->SetLabelSize(0.06);
+			h = (TH1F*)h_equal->Clone();
+		} else {
+			h = (TH1F*)h_temp->Clone(); 
+		}
 
 		if( debug ) cout<<"  NEvents = "<<h->GetEntries()<<endl;
 
@@ -721,8 +742,12 @@ public :
 			else if( plot_reverse_cdf )
 				h = GetReverseCDF( h ); 
 
-			if( plot_log ) h->SetMaximum( h->GetMaximum()*20. );
-			else  		   h->SetMaximum( h->GetMaximum()*1.25 );
+			if( plot_log ){ 
+				h->SetMaximum( h->GetMaximum()*20. );
+			}
+			else {
+				h->SetMaximum( h->GetMaximum()*1.25 );
+			}
 
 			h->SetLineColor( colors[i] );
 			h->SetLineStyle( linestyle[i] );
@@ -797,7 +822,7 @@ public :
 	// =====================================================================================
 
 	// -------------------------------------------------------------------------------------
-	void Plot( string plot_type = "", string filetag_treename_divisor = "" ){
+	void Plot( string plot_type = "", string filetag_treename_divisor = "", vector<string> mass_lifetime = {"higgs", "llp", "ctau"}, bool multiple = false ){
 		if( debug) cout<<"MiniTuplePlotter::Plot()"<<endl;		
 
 		GetTrees();
@@ -830,7 +855,16 @@ public :
 			StampCMS( "Internal", 140., 0.14, 0.84, 0.045 );
 			StampCuts( 0.1, 0.91, 0.015 );			
 			StampText( 0.7, 0.91, 0.04, WriteSelection);
-
+			
+			TString output_file_name = GetOutputFileName(PlotParams_temp, plot_type);
+			// handle long Smajor Sminor filenames! 
+			if (output_file_name == "Plotratio_-1 MULT jet0_S_etaeta MULT jet0_S_phiphi + sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2 MULT jet0_S_etaeta MULT jet0_S_phiphi - sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2_norm_log_Rcdf_Overlay_v3.0") output_file_name = "Plotratio_jet0_Smajor_Sminor_norm_log_Rcdf_Overlay_v3.0";
+			if (output_file_name == "Plotratio_-1 MULT jet0_S_etaeta MULT jet0_S_phiphi + sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2 MULT jet0_S_etaeta MULT jet0_S_phiphi - sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2_norm_log_cdf_Overlay_v3.0") output_file_name = "Plotratio_jet0_Smajor_Sminor_norm_log_cdf_Overlay_v3.0";
+			if (output_file_name == "Plotratio_-1 MULT jet0_S_etaeta MULT jet0_S_phiphi + sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2 MULT jet0_S_etaeta MULT jet0_S_phiphi - sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2_norm_log_Overlay_v3.0") output_file_name = "Plotratio_jet0_Smajor_Sminor_norm_log_Overlay_v3.0";
+			if (output_file_name == "Plotratio_-1 MULT jet0_S_etaeta MULT jet0_S_phiphi + sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2 MULT jet0_S_etaeta MULT jet0_S_phiphi - sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2_norm_log_JetpTBins_Jet40_v3.0_MC") output_file_name = "Plotratio_jet0_Smajor_Sminor_norm_log_JetpTBins_Jet40_v3.0_MC";
+			if (output_file_name == "Plotratio_-1 MULT jet0_S_etaeta MULT jet0_S_phiphi + sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2 MULT jet0_S_etaeta MULT jet0_S_phiphi - sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2_norm_log_JetpTBins_Jet40_v3.0") output_file_name = "Plotratio_jet0_Smajor_Sminor_norm_log_JetpTBins_Jet40_v3.0";
+			// fout = new TFile( "Figures/Figures_"+output_file_name+".root", "RECREATE"); // if want separate root file for each plot
+			
 			if( plot_type == "ratio" ){
 				myCanvas->cd(2);
 				if( plot_log_ratio ) gPad->SetLogy(); 	
@@ -844,40 +878,68 @@ public :
 				myCanvas->cd(1);
 			}
 
-			// put efficiency TEff code here?
-			if( plot_type == "efficiency" ){
+			if( plot_type == "efficiency" || plot_type == "acceptance"){
 				myCanvas->cd(2);
 				// need to get the first hist, this will be the denominator for the efficiency plot when listed first in compare cuts (h_total)
 				int i = 0;
 				// TLegend* leg  = new TLegend(legx1-0.45,legy1,legx2-0.45,legy2);
-				TLegend* leg  = new TLegend(legx1,legy1-0.3,legx2,legy2-0.3);
+				TLegend* leg  = new TLegend(legx1,legy1-0.3,legx2,legy2-0.3); // for L1 approval efficiency plots, legend on ratio area
 				string denom_hist_tag = "";
 				for( auto hist_tag: hist_tags ){
 					// string hist_tag = Form( "%s "+GetBetterCutTitle( selective_cuts[filetag_treename] )+" "+GetBetterCutTitle( cut_compare ), filetag_treename.c_str() );
 					if (i == 0) denom_hist_tag = hist_tag;
+					if (multiple && i%2 == 0) denom_hist_tag = hist_tag; // if overlaying multiple mass points, use the first one in each set as the denominiator 
 					// cout << denom_hist_tag << " = denom tag and current tag = " << hist_tag << endl;
 					TH1F *h_total = (TH1F*)hists[denom_hist_tag]->Clone();
-					if (i > 0) {
+					if ((multiple == false && i > 0) || (multiple == true && i%2 == 1)) {
 						TH1F *h_pass = (TH1F*)hists[hist_tag]->Clone();
 						TEfficiency* pEff = 0;
  						// h_pass and h_total are valid and consistent histograms
 						if(TEfficiency::CheckConsistency(*h_pass, *h_total)) {
 							pEff = new TEfficiency(*h_pass, *h_total);
 							string label_y = "Efficiency";
+							if (plot_type == "acceptance") label_y = "Acceptance";
+							if (multiple) label_y = "L1T efficiency";
 							pEff->SetTitle(Form("; %s; %s", PlotParams_temp.label_x.c_str(), label_y.c_str())); // HCAL LLP Trigger Efficiencies
 							pEff->SetLineColor( colors[i] );
 							pEff->SetLineWidth(3.);
+
+							pEff->SetMarkerStyle(52 + i); // for a x as the marker to differentiate the overlayed plots (53 = circle, 55 = triangle)
+							pEff->SetMarkerSize(1.7);
+							pEff->SetMarkerColor(colors[i]);
+
 							if (i == 1) pEff->Draw();
 							if (i > 1) pEff->Draw("same");
 							gPad->Update();
-							pEff->GetPaintedGraph()->GetYaxis()->SetRangeUser(0,1.);
 
-							leg->AddEntry(pEff, Form("%s", legend_names.at(i).c_str() ) );
+							float label_size = 0.045;
+							pEff->GetPaintedGraph()->GetXaxis()->SetTitleSize(label_size); // size of X label
+							pEff->GetPaintedGraph()->GetXaxis()->SetLabelSize(label_size); // size of X axis tick labels
+							pEff->GetPaintedGraph()->GetYaxis()->SetTitleSize(label_size);
+							pEff->GetPaintedGraph()->GetYaxis()->SetLabelSize(label_size);
+							gPad->Update();
+
+							pEff->GetPaintedGraph()->GetXaxis()->SetRangeUser(PlotParams_temp.xmin, PlotParams_temp.xmax); // restrict x range to that listed in plot params
+							// std::cout << "set axis range to " << PlotParams_temp.xmin << ", " << PlotParams_temp.xmax << std::endl;
+							pEff->GetPaintedGraph()->GetYaxis()->SetRangeUser(0, 1.);
+
+							leg->AddEntry(pEff, legend_names.at(i).c_str(), "ep" ); // points and vertical markers. Remove Form(%s) to have newline work! 
+							leg->SetTextSize(0.045); // larger legend text size
 
 							if (i == size(hist_tags)-1 ) {
 								leg->Draw();
-								StampCMS( "Simulation Preliminary", 140., 0.14, 0.92, 0.045, 2 ); // 0 means no energy, 1 means sqrt s, 2 means (13.6 TeV) (should we have this for simulation?)
+								// StampCMS( "Simulation Preliminary", 140., 0.12, 0.92, 0.06, 2 ); // 0 means no energy, 1 means sqrt s, 2 means (13.6 TeV) (should we have this for simulation?)
+								StampCMS( "Simulation", 140., 0.12, 0.92, 0.06, 2 ); // 0 means no energy, 1 means sqrt s, 2 means (13.6 TeV) (should we have this for simulation?)
+								if (multiple) StampLLP( 0.14, 0.84, 0.04, mass_lifetime ); // top left // trigger paper plots
+								// else if (multiple && PlotParams_temp.hist_name == "eventHT") StampLLP( 0.56, 0.15, 0.03, mass_lifetime ); // lower right, no mass / ctau written for multiple, works when hard cuts on jet pt and event HT
+								else if (PlotParams_temp.hist_name == "perJet_MatchedLLP_DecayR" ) StampLLP( 0.14, 0.86, 0.03, mass_lifetime ); // top left
+								else if (PlotParams_temp.hist_name == "eventHT" && mass_lifetime[0] == "125" ) StampLLP( 0.6, 0.45, 0.03, mass_lifetime ); // middle right
+								else StampLLP( 0.56, 0.19, 0.03, mass_lifetime ); // lower right
 							}
+							fout->cd(); // write to a root file
+							std::string temp(legend_names.at(i).c_str());
+							if (plot_type == "efficiency") pEff->Write(output_file_name+"_"+temp.substr(6,3)); // for L1 efficiency with 2 mass points
+							else pEff->Write(output_file_name);
 						}
 					}
 					i += 1;
@@ -900,16 +962,14 @@ public :
 				} 
 			}
 
-			TString output_file_name = GetOutputFileName(PlotParams_temp, plot_type);
-			// handle long Smajor Sminor filenames! 
-			if (output_file_name == "Plotratio_-1 MULT jet0_S_etaeta MULT jet0_S_phiphi + sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2 MULT jet0_S_etaeta MULT jet0_S_phiphi - sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2_norm_log_Rcdf_Overlay_v3.0") output_file_name = "Plotratio_jet0_Smajor_Sminor_norm_log_Rcdf_Overlay_v3.0";
-			if (output_file_name == "Plotratio_-1 MULT jet0_S_etaeta MULT jet0_S_phiphi + sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2 MULT jet0_S_etaeta MULT jet0_S_phiphi - sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2_norm_log_cdf_Overlay_v3.0") output_file_name = "Plotratio_jet0_Smajor_Sminor_norm_log_cdf_Overlay_v3.0";
-			if (output_file_name == "Plotratio_-1 MULT jet0_S_etaeta MULT jet0_S_phiphi + sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2 MULT jet0_S_etaeta MULT jet0_S_phiphi - sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2_norm_log_Overlay_v3.0") output_file_name = "Plotratio_jet0_Smajor_Sminor_norm_log_Overlay_v3.0";
-			if (output_file_name == "Plotratio_-1 MULT jet0_S_etaeta MULT jet0_S_phiphi + sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2 MULT jet0_S_etaeta MULT jet0_S_phiphi - sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2_norm_log_JetpTBins_Jet40_v3.0_MC") output_file_name = "Plotratio_jet0_Smajor_Sminor_norm_log_JetpTBins_Jet40_v3.0_MC";
-			if (output_file_name == "Plotratio_-1 MULT jet0_S_etaeta MULT jet0_S_phiphi + sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2 MULT jet0_S_etaeta MULT jet0_S_phiphi - sqrt jet0_S_etaeta - jet0_S_phiphiMULTjet0_S_etaeta - jet0_S_phiphi + 4MULTjet0_S_etaphi  DIV 2_norm_log_JetpTBins_Jet40_v3.0") output_file_name = "Plotratio_jet0_Smajor_Sminor_norm_log_JetpTBins_Jet40_v3.0";
-			//fout->cd();
-			//myCanvas->Write();
+			fout->cd(); // write to a root file
+			myCanvas->Write(); 
+
 			myCanvas->SaveAs( output_directory+"/"+output_file_name+".png", "png" );
+			if( plot_type == "efficiency" || plot_type == "acceptance" ) {
+				myCanvas->SaveAs( output_directory+"/"+output_file_name+".pdf", "pdf" );
+				// myCanvas->SaveAs( output_directory+"/"+output_file_name+".C", "C" );
+			}
 			delete myCanvas;
 
 		}
@@ -928,7 +988,7 @@ public :
 		myCanvas->SetTopMargin(0.12);
 		myCanvas->SetBottomMargin(0.12);
 
-		gStyle->SetPalette(kCool);
+		//gStyle->SetPalette(kCool);
 
 		if( plot_log ) 
 			gPad->SetLogz();
@@ -980,8 +1040,8 @@ public :
 			saveas_name = Form("%s", legend_names.at(i).c_str() );
 
 		//myCanvas->SaveAs( Form( output_directory+"/Plot2D_%s_"+output_file_name+"_"+saveas_name+"_%s.png", filetag_treename.c_str(), output_file_tag.c_str() ) );
-		myCanvas->SaveAs( Form( output_directory+"/Plot2D_%s_"+output_file_name+"_"+saveas_name(0,24)+"_%s.png", (filetag_treename.substr(0,11)).c_str(), output_file_tag.c_str() ) );
-        //myCanvas->SaveAs( Form( output_directory+"/Plot2D_"+output_file_name+"_Cut"+saveas_name(0,24)+"_%s.png", output_file_tag.c_str() ) );
+		//myCanvas->SaveAs( Form( output_directory+"/Plot2D_%s_"+output_file_name+"_"+saveas_name(0,24)+"_%s.png", (filetag_treename.substr(0,11)).c_str(), output_file_tag.c_str() ) );
+        myCanvas->SaveAs( Form( output_directory+"/Plot2D_"+output_file_name+"_Cut"+saveas_name(0,24)+"_%s.png", output_file_tag.c_str() ) );
 		
 		delete myCanvas;
 	}
