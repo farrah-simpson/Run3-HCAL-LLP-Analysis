@@ -25,8 +25,7 @@ tree_name = "NoSel"
 
 if args.depth:
     tagger_name = "Depth"
-    score_var = "jet0_scores_depth_LLPanywhere"
-    score_var_holder = "jet0_scores_depth_anywhere_updated" 
+    score_var = "jet0_scores_depth_anywhere_updated" 
     threshold = 0.
 elif args.inclusive:
     tagger_name = "Inclusive"
@@ -53,39 +52,24 @@ data_tree4 = data_file4[tree_name]
 data_tree5 = data_file5[tree_name]
 data_tree6 = data_file6[tree_name]
 
-data_tree_comb = ak.concatenate([
-    data_tree1.arrays(library="ak"),
-    data_tree2.arrays(library="ak"),
-    data_tree3.arrays(library="ak"),
-    data_tree4.arrays(library="ak"),
-    data_tree5.arrays(library="ak"),
-    data_tree6.arrays(library="ak"),
-], axis=0)
-
 mc_tree   = mc_file[tree_name]
 
-if tagger_name == "Depth": 
-    data_score_comb  = data_tree_comb[score_var_holder].array(library="np")
+data_trees = [data_tree1, data_tree2, data_tree3, data_tree4, data_tree5, data_tree6]
 
-#    data_score1  = data_tree1[score_var_holder].array(library="np")
-#    data_score2  = data_tree2[score_var_holder].array(library="np")
-#    data_score3  = data_tree3[score_var_holder].array(library="np")
-#    data_score4  = data_tree4[score_var_holder].array(library="np")
-#    data_score5  = data_tree5[score_var_holder].array(library="np")
-#    data_score6  = data_tree6[score_var_holder].array(library="np")
-    mc_score   = mc_tree[score_var_holder].array(library="np")
-else: 
-    data_score_comb  = data_tree_comb[score_var].array(library="np")
-
+#if tagger_name == "Depth": 
 #    data_score1  = data_tree1[score_var].array(library="np")
 #    data_score2  = data_tree2[score_var].array(library="np")
 #    data_score3  = data_tree3[score_var].array(library="np")
 #    data_score4  = data_tree4[score_var].array(library="np")
 #    data_score5  = data_tree5[score_var].array(library="np")
 #    data_score6  = data_tree6[score_var].array(library="np")
-    mc_score   = mc_tree[score_var].array(library="np")
-
-data_pass_comb = data_tree_comb["Pass_WPlusJets"].array(library="np")
+#else: 
+#    data_score1  = data_tree1[score_var].array(library="np")
+#    data_score2  = data_tree2[score_var].array(library="np")
+#    data_score3  = data_tree3[score_var].array(library="np")
+#    data_score4  = data_tree4[score_var].array(library="np")
+#    data_score5  = data_tree5[score_var].array(library="np")
+#    data_score6  = data_tree6[score_var].array(library="np")
 
 #data_pass1 = data_tree1["Pass_WPlusJets"].array(library="np")
 #data_pass2 = data_tree2["Pass_WPlusJets"].array(library="np")
@@ -94,7 +78,8 @@ data_pass_comb = data_tree_comb["Pass_WPlusJets"].array(library="np")
 #data_pass5 = data_tree5["Pass_WPlusJets"].array(library="np")
 #data_pass6 = data_tree6["Pass_WPlusJets"].array(library="np")
 
-mc_pass   = mc_tree["Pass_WPlusJets"].array(library="np")
+mc_score   = mc_tree[score_var].array(library="np")
+mc_pass  = mc_tree["Pass_WPlusJets"].array(library="np")
 
 bins = 10
 h_data_comb = ROOT.TH1F("h_data_comb", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
@@ -108,8 +93,8 @@ h_data_comb = ROOT.TH1F("h_data_comb", f"{tagger_name} score;{tagger_name} score
 #
 h_mc   = ROOT.TH1F("h_mc",   f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
 
+h_mc.Sumw2()
 h_data_comb.Sumw2()
-
 #h_data1.Sumw2()
 #h_data2.Sumw2()
 #h_data3.Sumw2()
@@ -117,16 +102,17 @@ h_data_comb.Sumw2()
 #h_data5.Sumw2()
 #h_data6.Sumw2()
 
-h_mc.Sumw2()
-for val in data_score_comb[(data_pass_comb == 1)]:h_data_comb.Fill(float(val))
-
 #for val in data_score1[(data_pass1 == 1)]:h_data1.Fill(float(val))
 #for val in data_score2[(data_pass2 == 1)]:h_data2.Fill(float(val))
 #for val in data_score3[(data_pass3 == 1)]:h_data3.Fill(float(val))
 #for val in data_score4[(data_pass4 == 1)]:h_data4.Fill(float(val))
 #for val in data_score5[(data_pass5 == 1)]:h_data5.Fill(float(val))
 #for val in data_score6[(data_pass6 == 1)]:h_data6.Fill(float(val))
-
+for tree in data_trees:
+    scores = tree[score_var].array(library="np")
+    passed = tree["Pass_WPlusJets"].array(library="np")
+    for val in scores[passed == 1]:
+        h_data_comb.Fill(float(val))
 for val in mc_score[(mc_pass == 1)]:h_mc.Fill(float(val))
 
 #h_data_raw = h_data.Clone("h_data_raw")
@@ -173,7 +159,16 @@ ymax = max(h_data_comb.GetMaximum(), h_mc.GetMaximum())
 h_data_comb.SetMaximum(1.9 * ymax)
 
 h_ratio_comb = h_data_comb.Clone("h_ratio_comb")
-h_ratio_comb.Divide(h_mc)
+for ibin in range(1, h_ratio_comb.GetNbinsX() + 1):
+    mc_val = h_mc.GetBinContent(ibin)
+    data_val = h_data_comb.GetBinContent(ibin)
+    data_err = h_data_comb.GetBinError(ibin)
+    if mc_val > 0:
+        h_ratio_comb.SetBinContent(ibin, data_val / mc_val)
+        h_ratio_comb.SetBinError(ibin, data_err / mc_val)
+    else:
+        h_ratio_comb.SetBinContent(ibin, 0.0)
+        h_ratio_comb.SetBinError(ibin, 0.0)
 
 #h_ratio1 = h_data1.Clone("h_ratio1")
 #h_ratio1.Divide(h_mc)
@@ -210,7 +205,7 @@ colors = [
     ROOT.kOrange+1
 ]
 
-#markers = [20, 21, 22, 23, 33, 34]
+markers = [20, 21, 22, 23, 33, 34]
 #data_hists  = [h_data1, h_data2, h_data3, h_data4, h_data5, h_data6]
 #ratio_hists = [h_ratio1, h_ratio2, h_ratio3, h_ratio4, h_ratio5, h_ratio6]
 #for i in range(len(data_hists)):
@@ -270,11 +265,11 @@ pad2.SetBottomMargin(0.3)
 pad2.Draw()
 pad2.cd()
 
-for i in range(len(ratio_hists)):
-    ratio_hists[i].SetLineColor(colors[i])
-    ratio_hists[i].SetMarkerColor(colors[i])
-    ratio_hists[i].SetMarkerStyle(markers[i])
-    ratio_hists[i].SetLineWidth(2)
+#for i in range(len(ratio_hists)):
+#    ratio_hists[i].SetLineColor(colors[i])
+#    ratio_hists[i].SetMarkerColor(colors[i])
+#    ratio_hists[i].SetMarkerStyle(markers[i])
+#    ratio_hists[i].SetLineWidth(2)
 
 h_ratio_comb.SetTitle("")
 
