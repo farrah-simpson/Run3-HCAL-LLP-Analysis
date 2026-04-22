@@ -5,7 +5,6 @@ import argparse, os
 import json
 
 parser = argparse.ArgumentParser(description="W+Jets Selection Data vs MC tagger score comparison.")
-parser.add_argument("-d", "--data", required=True, help="Path to Zmumu data ROOT file")
 parser.add_argument("-m", "--mc", required=True, help="Path to W+Jets MC ROOT file")
 parser.add_argument("--inclusive", action="store_true", help="Use inclusive tagger")
 parser.add_argument("--depth", action="store_true", help="Use depth tagger")
@@ -26,47 +25,154 @@ tree_name = "NoSel"
 if args.depth:
     tagger_name = "Depth"
     score_var = "jet0_scores_depth_LLPanywhere"
-    score_var_holder = "jet0_scores_depth_anywhere" 
+    score_var_holder = "jet0_scores_depth_anywhere_updated" 
     threshold = 0.
 elif args.inclusive:
     tagger_name = "Inclusive"
-    score_var = "jet0_scores_inc_train80" 
+    score_var = "jet0_scores_inc_train80_updated" 
     threshold = 0. 
 else:
     raise ValueError("Please specify either --depth or --inclusive")
 
 print(f"Using tagger: {tagger_name}")
 
-data_file = uproot.open(args.data)
+data_file1 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv1_allscores.root")
+data_file2 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv2_allscores.root")
+data_file3 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv3_allscores.root")
+data_file4 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv4_allscores.root")
+data_file5 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Dv1_allscores.root")
+data_file6 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Dv2_allscores.root")
+
 mc_file   = uproot.open(args.mc)
 
-data_tree = data_file[tree_name]
+data_tree1 = data_file1[tree_name]
+data_tree2 = data_file2[tree_name]
+data_tree3 = data_file3[tree_name]
+data_tree4 = data_file4[tree_name]
+data_tree5 = data_file5[tree_name]
+data_tree6 = data_file6[tree_name]
+
 mc_tree   = mc_file[tree_name]
 
-if tagger_name == "Depth": data_score  = data_tree[score_var_holder].array(library="np")
-else: data_score  = data_tree[score_var].array(library="np")
+if tagger_name == "Depth": 
+    data_score1  = data_tree1[score_var_holder].array(library="np")
+    data_score2  = data_tree2[score_var_holder].array(library="np")
+    data_score3  = data_tree3[score_var_holder].array(library="np")
+    data_score4  = data_tree4[score_var_holder].array(library="np")
+    data_score5  = data_tree5[score_var_holder].array(library="np")
+    data_score6  = data_tree6[score_var_holder].array(library="np")
+else: 
+    data_score1  = data_tree1[score_var].array(library="np")
+    data_score2  = data_tree2[score_var].array(library="np")
+    data_score3  = data_tree3[score_var].array(library="np")
+    data_score4  = data_tree4[score_var].array(library="np")
+    data_score5  = data_tree5[score_var].array(library="np")
+    data_score6  = data_tree6[score_var].array(library="np")
+
 mc_score   = mc_tree[score_var].array(library="np")
 
-data_pass = data_tree["Pass_WPlusJets"].array(library="np")
+data_pass1 = data_tree1["Pass_WPlusJets"].array(library="np")
+data_pass2 = data_tree2["Pass_WPlusJets"].array(library="np")
+data_pass3 = data_tree3["Pass_WPlusJets"].array(library="np")
+data_pass4 = data_tree4["Pass_WPlusJets"].array(library="np")
+data_pass5 = data_tree5["Pass_WPlusJets"].array(library="np")
+data_pass6 = data_tree6["Pass_WPlusJets"].array(library="np")
+
 mc_pass   = mc_tree["Pass_WPlusJets"].array(library="np")
 
-bins = 40
-h_data = ROOT.TH1F("h_data", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
+bins = 10
+h_data1 = ROOT.TH1F("h_data1", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
+h_data2 = ROOT.TH1F("h_data2", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
+h_data3 = ROOT.TH1F("h_data3", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
+h_data4 = ROOT.TH1F("h_data4", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
+h_data5 = ROOT.TH1F("h_data5", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
+h_data6 = ROOT.TH1F("h_data6", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
+
 h_mc   = ROOT.TH1F("h_mc",   f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
-h_data.Sumw2()
+h_data1.Sumw2()
+h_data2.Sumw2()
+h_data3.Sumw2()
+h_data4.Sumw2()
+h_data5.Sumw2()
+h_data6.Sumw2()
+
 h_mc.Sumw2()
 
-for val in data_score[(data_pass == 1)]:h_data.Fill(float(val))
+for val in data_score1[(data_pass1 == 1)]:h_data1.Fill(float(val))
+for val in data_score2[(data_pass2 == 1)]:h_data2.Fill(float(val))
+for val in data_score3[(data_pass3 == 1)]:h_data3.Fill(float(val))
+for val in data_score4[(data_pass4 == 1)]:h_data4.Fill(float(val))
+for val in data_score5[(data_pass5 == 1)]:h_data5.Fill(float(val))
+for val in data_score6[(data_pass6 == 1)]:h_data6.Fill(float(val))
+
+for val in data_score2[(data_pass2 == 1)]:h_data1.Fill(float(val))
+for val in data_score3[(data_pass3 == 1)]:h_data1.Fill(float(val))
+for val in data_score4[(data_pass4 == 1)]:h_data1.Fill(float(val))
+for val in data_score5[(data_pass5 == 1)]:h_data1.Fill(float(val))
+for val in data_score6[(data_pass6 == 1)]:h_data1.Fill(float(val))
+
 for val in mc_score[(mc_pass == 1)]:h_mc.Fill(float(val))
 
-h_data_raw = h_data.Clone("h_data_raw")
-h_mc_raw   = h_mc.Clone("h_mc_raw")
+#h_data_raw = h_data.Clone("h_data_raw")
+#h_mc_raw   = h_mc.Clone("h_mc_raw")
 
-if h_data.Integral() > 0: h_data.Scale(1.0/h_data.Integral())
+if h_data1.Integral() > 0: h_data1.Scale(1.0/h_data1.Integral())
+if h_data2.Integral() > 0: h_data2.Scale(1.0/h_data2.Integral())
+if h_data3.Integral() > 0: h_data3.Scale(1.0/h_data3.Integral())
+if h_data4.Integral() > 0: h_data4.Scale(1.0/h_data4.Integral())
+if h_data5.Integral() > 0: h_data5.Scale(1.0/h_data5.Integral())
+if h_data6.Integral() > 0: h_data6.Scale(1.0/h_data6.Integral())
+
 if h_mc.Integral() > 0: h_mc.Scale(1.0/h_mc.Integral())
 
-ymax = max(h_data.GetMaximum(), h_mc.GetMaximum())
-h_data.SetMaximum(1.3 * ymax)
+# --- build MC uncertainty band for top pad ---
+h_mc_band = h_mc.Clone("h_mc_band")
+h_mc_band.SetDirectory(0)
+h_mc_band.SetFillColorAlpha(ROOT.kGray+1, 0.35)
+h_mc_band.SetLineColor(ROOT.kGray+1)
+h_mc_band.SetMarkerSize(0)
+
+# --- build ratio uncertainty band: MC/MC = 1 with relative MC uncertainty ---
+h_ratio_band = h_mc.Clone("h_ratio_band")
+h_ratio_band.SetDirectory(0)
+h_ratio_band.Reset("ICES")
+
+for ibin in range(1, h_mc.GetNbinsX() + 1):
+    mc_val = h_mc.GetBinContent(ibin)
+    mc_err = h_mc.GetBinError(ibin)
+
+    h_ratio_band.SetBinContent(ibin, 1.0)
+    if mc_val > 0:
+        h_ratio_band.SetBinError(ibin, mc_err / mc_val)
+    else:
+        h_ratio_band.SetBinError(ibin, 0.0)
+
+h_ratio_band.SetFillColorAlpha(ROOT.kGray+1, 0.35)
+h_ratio_band.SetLineColor(ROOT.kGray+1)
+#h_ratio_band.SetMarkerSize(0)
+
+
+ymax = max(h_data1.GetMaximum(), h_mc.GetMaximum())
+h_data1.SetMaximum(1.9 * ymax)
+
+h_ratio1 = h_data1.Clone("h_ratio1")
+h_ratio1.Divide(h_mc)
+
+h_ratio2 = h_data2.Clone("h_ratio2")
+h_ratio2.Divide(h_mc)
+
+h_ratio3 = h_data3.Clone("h_ratio3")
+h_ratio3.Divide(h_mc)
+
+h_ratio4 = h_data4.Clone("h_ratio4")
+h_ratio4.Divide(h_mc)
+
+h_ratio5 = h_data5.Clone("h_ratio5")
+h_ratio5.Divide(h_mc)
+
+h_ratio6 = h_data6.Clone("h_ratio6")
+h_ratio6.Divide(h_mc)
+
 
 c = ROOT.TCanvas("c", "", 800, 700)
 ROOT.gStyle.SetOptStat(0)
@@ -75,19 +181,58 @@ pad1.SetBottomMargin(0)
 pad1.Draw()
 pad1.SetLogy()
 pad1.cd()
+colors = [
+    ROOT.kRed,
+    ROOT.kBlue,
+    ROOT.kCyan,
+    ROOT.kGreen+2,
+    ROOT.kMagenta,
+    ROOT.kOrange+1
+]
 
-h_data.SetLineColor(ROOT.kBlack)
-h_mc.SetLineColor(ROOT.kRed)
-h_mc.SetLineStyle(2)
-h_data.SetTitle("")
-h_data.Draw("HIST")
-h_mc.Draw("HIST SAME")
+markers = [20, 21, 22, 23, 33, 34]
+data_hists  = [h_data1, h_data2, h_data3, h_data4, h_data5, h_data6]
+ratio_hists = [h_ratio1, h_ratio2, h_ratio3, h_ratio4, h_ratio5, h_ratio6]
+
+for i in range(len(data_hists)):
+    data_hists[i].SetLineColor(colors[i])
+    data_hists[i].SetMarkerColor(colors[i])
+    data_hists[i].SetMarkerStyle(markers[i])
+    data_hists[i].SetLineWidth(2)
+
+h_mc.SetLineColor(ROOT.kBlack)
+h_mc.SetLineWidth(2)
+h_mc.SetTitle("")
+
+h_mc.Draw("HIST")
+h_mc_band.Draw("E2 SAME")   # <- error band
+h_mc.Draw("HIST SAME")      # redraw line on top
+
+h_data1.Draw("E SAME")
+
+#h_data2.Draw("E SAME")
+#h_data3.Draw("E SAME")
+#h_data4.Draw("E SAME")
+#h_data5.Draw("E SAME")
+#h_data6.Draw("E SAME")
 
 cutLabel = f"{tagger_name} DNN score"
 
-legend = ROOT.TLegend(0.6, 0.7, 0.85, 0.85)
-legend.AddEntry(h_data, "Data", "l")
+legend = ROOT.TLegend(0.5, 0.55, 0.9, 0.9)
+legend.SetTextSize(0.045)
+
+#legend.AddEntry(h_data1, "Run 2023Cv1", "l")
+#legend.AddEntry(h_data2, "Run 2023Cv2", "l")
+#legend.AddEntry(h_data3, "Run 2023Cv3", "l")
+#legend.AddEntry(h_data4, "Run 2023Cv4", "l")
+#legend.AddEntry(h_data5, "Run 2023Dv1", "l")
+#legend.AddEntry(h_data6, "Run 2023Dv2", "l")
+
 legend.AddEntry(h_mc, "MC", "l")
+legend.AddEntry(h_data1, "Combined Run 2023", "lep")
+legend.AddEntry(h_mc, "MC", "l")
+legend.AddEntry(h_mc_band, "MC stat. unc.", "f")
+
 legend.Draw()
 
 stamp = ROOT.TLatex()
@@ -103,22 +248,33 @@ pad2.SetBottomMargin(0.3)
 pad2.Draw()
 pad2.cd()
 
-h_ratio = h_data.Clone("h_ratio")
-h_ratio.Divide(h_mc)
+for i in range(len(ratio_hists)):
+    ratio_hists[i].SetLineColor(colors[i])
+    ratio_hists[i].SetMarkerColor(colors[i])
+    ratio_hists[i].SetMarkerStyle(markers[i])
+    ratio_hists[i].SetLineWidth(2)
 
-h_ratio.SetTitle("")
-h_ratio.GetYaxis().SetTitle("Data/Bkg")
-h_ratio.GetYaxis().SetTitleSize(0.09)
-h_ratio.GetYaxis().SetLabelSize(0.08)
-h_ratio.GetYaxis().SetTitleOffset(0.5)
-h_ratio.GetXaxis().SetTitle(f"{tagger_name} tagger score")
-h_ratio.GetXaxis().SetTitleSize(0.1)
-h_ratio.GetXaxis().SetLabelSize(0.09)
-h_ratio.GetYaxis().SetNdivisions(5)#404
-h_ratio.GetXaxis().SetNdivisions(506)
-h_ratio.SetMinimum(0.01)
-h_ratio.SetMaximum(1.99)
-h_ratio.Draw("E")
+h_ratio1.SetTitle("")
+h_ratio1.GetYaxis().SetTitle("Data/Bkg")
+h_ratio1.GetYaxis().SetTitleSize(0.2)
+h_ratio1.GetYaxis().SetLabelSize(0.2)
+h_ratio1.GetYaxis().SetTitleOffset(0.5)
+h_ratio1.GetXaxis().SetTitle(f"{tagger_name} tagger score")
+h_ratio1.GetXaxis().SetTitleSize(0.2)
+h_ratio1.GetXaxis().SetLabelSize(0.2)
+h_ratio1.GetYaxis().SetNdivisions(5)#404
+h_ratio1.GetXaxis().SetNdivisions(506)
+h_ratio1.SetMinimum(0.01)
+h_ratio1.SetMaximum(1.99)
+h_ratio_band.Draw("E2")     # <- ratio uncertainty band around 1
+h_ratio1.Draw("E SAME")
+
+#h_ratio2.Draw("E SAME")
+#h_ratio3.Draw("E SAME")
+#h_ratio4.Draw("E SAME")
+#h_ratio5.Draw("E SAME")
+#h_ratio6.Draw("E SAME")
+
 line = ROOT.TLine(0, 1.0, 1, 1.0)
 line.SetLineColor(ROOT.kGray+2)
 line.SetLineStyle(2)
@@ -127,32 +283,32 @@ line.Draw("SAME")
 
 pad2.Update()
 
-outname = f"{folder}/{tagger_name}_Score_DataMC.png"
+outname = f"{folder}/{tagger_name}_Score_DataMC_combined.png"
 c.SaveAs(outname)
 print(f"Saved score plot: {outname}")
 
-sf = []
-sf_err = []
-
-for i in range(1, bins+1):
-    d = h_data.GetBinContent(i)
-    m = h_mc.GetBinContent(i)
-    de = h_data.GetBinError(i)
-    me = h_mc.GetBinError(i)
-
-    if m > 0:
-        sf_i = d/m
-        sf_e = sf_i * np.sqrt((de/d)**2 + (me/m)**2) if d>0 else 0
-    else:
-        sf_i = 0
-        sf_e = 0
-
-    sf.append(sf_i)
-    sf_err.append(sf_e)
-
-json_file = f"{folder}/{tagger_name}_Score_SF.json"
-with open(json_file, "w") as f:
-    json.dump({"sf": sf, "sf_err": sf_err}, f, indent=2)
-
-print(f"Saved SFs: {json_file}")
-
+#sf = []
+#sf_err = []
+#
+#for i in range(1, bins+1):
+#    d = h_data.GetBinContent(i)
+#    m = h_mc.GetBinContent(i)
+#    de = h_data.GetBinError(i)
+#    me = h_mc.GetBinError(i)
+#
+#    if m > 0:
+#        sf_i = d/m
+#        sf_e = sf_i * np.sqrt((de/d)**2 + (me/m)**2) if d>0 else 0
+#    else:
+#        sf_i = 0
+#        sf_e = 0
+#
+#    sf.append(sf_i)
+#    sf_err.append(sf_e)
+#
+#json_file = f"{folder}/{tagger_name}_Score_SF.json"
+#with open(json_file, "w") as f:
+#    json.dump({"sf": sf, "sf_err": sf_err}, f, indent=2)
+#
+#print(f"Saved SFs: {json_file}")
+#
