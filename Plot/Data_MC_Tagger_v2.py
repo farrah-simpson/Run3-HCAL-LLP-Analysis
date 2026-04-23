@@ -43,6 +43,7 @@ data_file4 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/
 data_file5 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Dv1_allscores_NoSel_scores.root")
 data_file6 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Dv2_allscores_NoSel_scores.root")
 
+
 mc_file   = uproot.open(args.mc) 
 
 data_tree1 = data_file1[tree_name]
@@ -90,11 +91,12 @@ h_data_comb = ROOT.TH1F("h_data_comb", f"{tagger_name} score;{tagger_name} score
 #h_data4 = ROOT.TH1F("h_data4", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
 #h_data5 = ROOT.TH1F("h_data5", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
 #h_data6 = ROOT.TH1F("h_data6", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
-#
+
 h_mc   = ROOT.TH1F("h_mc",   f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
 
 h_mc.Sumw2()
 h_data_comb.Sumw2()
+
 #h_data1.Sumw2()
 #h_data2.Sumw2()
 #h_data3.Sumw2()
@@ -113,11 +115,11 @@ for tree in data_trees:
     passed = tree["Pass_WPlusJets"].array(library="np")
     for val in scores[passed == 1]:
         h_data_comb.Fill(float(val))
-for val in mc_score[(mc_pass == 1)]:h_mc.Fill(float(val))
+for val in mc_score[(mc_pass == 1)]:
+    h_mc.Fill(float(val))
 
-#h_data_raw = h_data.Clone("h_data_raw")
-#h_mc_raw   = h_mc.Clone("h_mc_raw")
 if h_data_comb.Integral() > 0: h_data_comb.Scale(1.0/h_data_comb.Integral())
+if h_mc.Integral() > 0: h_mc.Scale(1.0/h_mc.Integral())
 
 #if h_data1.Integral() > 0: h_data1.Scale(1.0/h_data1.Integral())
 #if h_data2.Integral() > 0: h_data2.Scale(1.0/h_data2.Integral())
@@ -126,16 +128,12 @@ if h_data_comb.Integral() > 0: h_data_comb.Scale(1.0/h_data_comb.Integral())
 #if h_data5.Integral() > 0: h_data5.Scale(1.0/h_data5.Integral())
 #if h_data6.Integral() > 0: h_data6.Scale(1.0/h_data6.Integral())
 
-if h_mc.Integral() > 0: h_mc.Scale(1.0/h_mc.Integral())
-
-# --- build MC uncertainty band for top pad ---
 h_mc_band = h_mc.Clone("h_mc_band")
 h_mc_band.SetDirectory(0)
 h_mc_band.SetFillColorAlpha(ROOT.kGray+1, 0.35)
 h_mc_band.SetLineColor(ROOT.kGray+1)
 h_mc_band.SetMarkerSize(0)
 
-# --- build ratio uncertainty band: MC/MC = 1 with relative MC uncertainty ---
 h_ratio_band = h_mc.Clone("h_ratio_band")
 h_ratio_band.SetDirectory(0)
 h_ratio_band.Reset("ICES")
@@ -153,7 +151,6 @@ for ibin in range(1, h_mc.GetNbinsX() + 1):
 h_ratio_band.SetFillColorAlpha(ROOT.kGray+1, 0.35)
 h_ratio_band.SetLineColor(ROOT.kGray+1)
 #h_ratio_band.SetMarkerSize(0)
-
 
 ymax = max(h_data_comb.GetMaximum(), h_mc.GetMaximum())
 h_data_comb.SetMaximum(1.9 * ymax)
@@ -187,7 +184,6 @@ for ibin in range(1, h_ratio_comb.GetNbinsX() + 1):
 #
 #h_ratio6 = h_data6.Clone("h_ratio6")
 #h_ratio6.Divide(h_mc)
-
 
 c = ROOT.TCanvas("c", "", 800, 700)
 ROOT.gStyle.SetOptStat(0)
@@ -314,22 +310,10 @@ h_ratio_comb.SetMaximum(1.99)
 #h_ratio1.SetMinimum(0.01)
 #h_ratio1.SetMaximum(1.99)
 
-#h_ratio1.GetYaxis().SetTitle("Data/Bkg")
-#h_ratio1.GetYaxis().SetTitleSize(0.2)
-#h_ratio1.GetYaxis().SetLabelSize(0.2)
-#h_ratio1.GetYaxis().SetTitleOffset(0.5)
-#h_ratio1.GetXaxis().SetTitle(f"{tagger_name} tagger score")
-#h_ratio1.GetXaxis().SetTitleSize(0.2)
-#h_ratio1.GetXaxis().SetLabelSize(0.2)
-#h_ratio1.GetYaxis().SetNdivisions(5)#404
-#h_ratio1.GetXaxis().SetNdivisions(506)
-#h_ratio1.SetMinimum(0.01)
-#h_ratio1.SetMaximum(1.99)
-#h_ratio1.Draw("E")
-
 h_ratio_comb.Draw("E")
 h_ratio_band.Draw("E2 SAME")     # <- ratio uncertainty band around 1
 
+#h_ratio1.Draw("E SAME")
 #h_ratio2.Draw("E SAME")
 #h_ratio3.Draw("E SAME")
 #h_ratio4.Draw("E SAME")
