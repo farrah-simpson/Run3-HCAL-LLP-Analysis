@@ -233,15 +233,15 @@ def LabelCMS(xpos=0.13, ypos=0.85, text_size=0.036):
     stamp_text.DrawLatex(xpos, ypos, cmsLabel)
     stamp_text.DrawLatex(xpos + 0.07, ypos, cmsLabelExtra)
     if ypos == 0.85:
-        stamp_text.DrawLatex(xpos + 0.62, ypos + 0.06, yearLumi)
+        if "2022_2023" in era:
+            stamp_text.DrawLatex(xpos + 0.55, ypos + 0.06, yearLumi)
+        else: stamp_text.DrawLatex(xpos + 0.62, ypos + 0.06, yearLumi)
         _dnn_label = DNN_cut_SJDC if current_jet_type == "sub-leading" else DNN_cut_LJDC
         stamp_text.DrawLatex(xpos + 0.4,  ypos,        "#scale[0.65]{DNN score > " + str(_dnn_label) + "}")
         stamp_text.DrawLatex(xpos + 0.4,  ypos - 0.04, "#scale[0.65]{Era = " + era + "}")
     else:
         _dnn_label = DNN_cut_SJDC if current_jet_type == "sub-leading" else DNN_cut_LJDC
-        if "2022_2023" in era:
-            stamp_text.DrawLatex(xpos + 0.5,  ypos + 0.03, yearLumi)
-        else: stamp_text.DrawLatex(xpos + 0.6,  ypos + 0.03, yearLumi)
+        stamp_text.DrawLatex(xpos + 0.6,  ypos + 0.03, yearLumi)
         stamp_text.DrawLatex(xpos + 0.3,  ypos,        "#scale[0.65]{DNN score > " + str(_dnn_label) + "}")
         stamp_text.DrawLatex(xpos + 0.3,  ypos - 0.04, "#scale[0.65]{Era = " + era + "}")
 

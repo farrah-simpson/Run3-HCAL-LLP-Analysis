@@ -184,11 +184,12 @@ def run_cutflow(
     # MET filters are only applied to data, not LLP MC signal.
     steps = [
         ("All",                                 ""),
-#        ("Trigger (L1)",                        "Pass_L1SingleLLPJet == 1"),
+        ("Trigger (L1)",                        "Pass_L1SingleLLPJet == 1"),
 #        ("Trigger (L1 DoubleLLPJet40)",         "L1_DoubleLLPJet40 == 1"),
-        ("Trigger (L1, but not L1 DoubleLLPJet40)",         "L1_DoubleLLPJet40 == 0 && Pass_L1SingleLLPJet == 1"),
+#        ("Trigger (L1, but not L1 DoubleLLPJet40)",         "L1_DoubleLLPJet40 == 0 && Pass_L1SingleLLPJet == 1"),
         ("Trigger (HLT)",                       "Pass_HLTDisplacedJet == 1"),
-        ("LJDC or SJDC",                        JDC_OR),
+        # ("LJDC or SJDC",                        JDC_OR),
+       ("$pT>60, |\eta|<1.26; pT>40, |\eta|<2.0$", "((jet0_Pt > 60 && abs(jet0_Eta) < 1.26 && jet1_Pt > 40 && abs(jet1_Eta) < 2.0) || (jet1_Pt > 60 && abs(jet1_Eta) < 1.26 && jet0_Pt > 40 && abs(jet0_Eta) < 2.0))"),
         ("$\Delta\phi$ (beam halo) veto",       "abs(jet0_jet1_dPhi) > 0.2"),
         (f"DNN $>{_inc_ljdc}$ / $>{_inc_sjdc}$ (inc)"     if _inc_ljdc != _inc_sjdc
          else f"DNN $>{_inc_ljdc}$ (inc)",        dnn_inc),

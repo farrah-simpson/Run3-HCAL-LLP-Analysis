@@ -175,7 +175,7 @@ class DataProcessor:
             return row['Pass_WPlusJets']
 
         def select_safety(row):
-            return (row['perJet_Pt'] > 40 and abs(row['perJet_Eta'] < 2.0) and
+            return (row['perJet_Pt'] > 40 and abs(row['perJet_Eta']) < 2.0 and
             0 <= row['perJet_EnergyFrac_Depth1'] <= 1 and 
             0 <= row['perJet_EnergyFrac_Depth2'] <= 1 and 
             0 <= row['perJet_EnergyFrac_Depth3'] <= 1 and 

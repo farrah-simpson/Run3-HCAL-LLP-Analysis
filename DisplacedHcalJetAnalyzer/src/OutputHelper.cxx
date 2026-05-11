@@ -563,25 +563,43 @@ void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename, map<string, boo
 
 	// L1 decisions and prescales.
 	// L1_Prescale is vector<double> in the ntupler. For data it holds the actual
-	// run-by-run prescale; for MC the ntupler fills prescales (100/50/1/1/1 for 
+	// run-by-run prescale; for MC the ntupler fills prescales (100/50/1/1/1 for
 	// the 5 LLP triggers). Stored as -1 when branches absent.
-	// L1_prescale_weight = 1/min_prescale over fired triggers; apply to MC event weights.
-	float  l1_prescale_weight = 1.0f;
-	double l1_min_prescale    = -1.0; // -1 = no fired trigger found yet
-	for (int i = 0; i < (int)L1_Indices.size(); i++) {
-		bool   decision = false;
-		double prescale = -1.0; // -1 = branch absent
-		if (has_L1_branches && i < (int)L1_Decision->size()) {
-			decision = L1_Decision->at(i);
-			prescale = (i < (int)L1_Prescale->size()) ? L1_Prescale->at(i) : -1.0;
-			if (decision && prescale > 0.0 && (l1_min_prescale < 0.0 || prescale < l1_min_prescale))
-				l1_min_prescale = prescale;
+	// For MC: emulate L1 prescale behavior — each prescaled trigger fires with
+	// probability 1/prescale; unprescaled triggers (prescale==1) always pass if fired.
+	// l1_prescale_weight = 1 if any trigger passes the prescale emulation, else 0.
+	// For data: events already passed the real L1 prescale hardware, so weight = 1.
+	// Seed combines lumiNum and eventNum (run is always 1 in MC, so excluded).
+	// TRandom3 internally uses only 32 bits; uint32 wraparound acts as a hash.
+	// One draw per trigger slot, regardless of decision, keeps the i-th trigger
+	// always using the i-th draw regardless of which earlier triggers fired.
+	float l1_prescale_weight = 1.0f;
+	if (!isData && has_L1_branches) {
+		UInt_t l1_seed = lumiNum * 1000003u + (UInt_t)eventNum;
+		TRandom3 l1_rng(l1_seed);
+		bool l1_passes = false;
+		for (int i = 0; i < (int)L1_Indices.size(); i++) {
+			double r        = l1_rng.Uniform();
+			bool   decision = (i < (int)L1_Decision->size()) ? L1_Decision->at(i) : false;
+			double prescale = (i < (int)L1_Prescale->size()) ? L1_Prescale->at(i) : -1.0;
+			if (decision && prescale > 0.0 && (prescale <= 1.0 || r < 1.0 / prescale))
+				l1_passes = true;
+			tree_output_vars_bool[L1_Names[i]]                  = decision;
+			tree_output_vars_float[L1_Names[i] + "_Prescale"]   = (float)prescale;
 		}
-		tree_output_vars_bool[L1_Names[i]]                  = decision;
-		tree_output_vars_float[L1_Names[i] + "_Prescale"]   = (float)prescale;
+		l1_prescale_weight = l1_passes ? 1.0f : 0.0f;
+	} else {
+		for (int i = 0; i < (int)L1_Indices.size(); i++) {
+			bool   decision = false;
+			double prescale = -1.0;
+			if (has_L1_branches && i < (int)L1_Decision->size()) {
+				decision = L1_Decision->at(i);
+				prescale = (i < (int)L1_Prescale->size()) ? L1_Prescale->at(i) : -1.0;
+			}
+			tree_output_vars_bool[L1_Names[i]]                  = decision;
+			tree_output_vars_float[L1_Names[i] + "_Prescale"]   = (float)prescale;
+		}
 	}
-	if (l1_min_prescale > 0.0)
-		l1_prescale_weight = (float)(1.0 / l1_min_prescale);
 	tree_output_vars_float["L1_prescale_weight"] = l1_prescale_weight;
 
 	tree_output_vars_bool["Flag_HBHENoiseFilter"] = Flag_HBHENoiseFilter;
@@ -959,23 +977,33 @@ void DisplacedHcalJetAnalyzer::FillOutputJetTrees( string treename, int jetIndex
 		jet_tree_output_vars_bool[HLT_Names[i]] = HLT_Decision->at(i);
 	}
 
-	// L1 decisions and prescales (same logic as event tree)
-	float  l1_prescale_weight_jet = 1.0f;
-	double l1_min_prescale_jet    = -1.0;
-	for (int i = 0; i < (int)L1_Indices.size(); i++) {
-		bool   decision = false;
-		double prescale = -1.0;
-		if (has_L1_branches && i < (int)L1_Decision->size()) {
-			decision = L1_Decision->at(i);
-			prescale = (i < (int)L1_Prescale->size()) ? L1_Prescale->at(i) : -1.0;
-			if (decision && prescale > 0.0 && (l1_min_prescale_jet < 0.0 || prescale < l1_min_prescale_jet))
-				l1_min_prescale_jet = prescale;
+	// L1 decisions and prescales (same logic as event tree — identical seed gives same weight)
+	float l1_prescale_weight_jet = 1.0f;
+	if (!isData && has_L1_branches) {
+		TRandom3 l1_rng_jet(lumiNum * 1000003u + (UInt_t)eventNum);
+		bool l1_passes_jet = false;
+		for (int i = 0; i < (int)L1_Indices.size(); i++) {
+			double r        = l1_rng_jet.Uniform();
+			bool   decision = (i < (int)L1_Decision->size()) ? L1_Decision->at(i) : false;
+			double prescale = (i < (int)L1_Prescale->size()) ? L1_Prescale->at(i) : -1.0;
+			if (decision && prescale > 0.0 && (prescale <= 1.0 || r < 1.0 / prescale))
+				l1_passes_jet = true;
+			jet_tree_output_vars_bool[L1_Names[i]]                = decision;
+			jet_tree_output_vars_float[L1_Names[i] + "_Prescale"] = (float)prescale;
 		}
-		jet_tree_output_vars_bool[L1_Names[i]]                = decision;
-		jet_tree_output_vars_float[L1_Names[i] + "_Prescale"] = (float)prescale;
+		l1_prescale_weight_jet = l1_passes_jet ? 1.0f : 0.0f;
+	} else {
+		for (int i = 0; i < (int)L1_Indices.size(); i++) {
+			bool   decision = false;
+			double prescale = -1.0;
+			if (has_L1_branches && i < (int)L1_Decision->size()) {
+				decision = L1_Decision->at(i);
+				prescale = (i < (int)L1_Prescale->size()) ? L1_Prescale->at(i) : -1.0;
+			}
+			jet_tree_output_vars_bool[L1_Names[i]]                = decision;
+			jet_tree_output_vars_float[L1_Names[i] + "_Prescale"] = (float)prescale;
+		}
 	}
-	if (l1_min_prescale_jet > 0.0)
-		l1_prescale_weight_jet = (float)(1.0 / l1_min_prescale_jet);
 	jet_tree_output_vars_float["L1_prescale_weight"] = l1_prescale_weight_jet;
 
 	float deltaR_jet_l1jet; 
