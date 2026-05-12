@@ -104,27 +104,40 @@ def run_cutflow(
     use_l1_prescale   = None,
     dnn_inc_cut       = 0.97,
     dnn_depth_cut     = 0.95,
+    dnn_inc_cut_sjdc  = None,
+    dnn_depth_cut_sjdc = None,
 ):
     """
     Print a cutflow table for the displaced-jet search.
 
     Parameters
     ----------
-    file_path       : str        – path to the input ROOT file
-    tree_name       : str        – name of the TTree inside the file
-    apply_llp_truth : bool       – if True, prepend the LLP-HCAL truth requirement
-                                   (one of jet0 / jet1 matched to an LLP with
-                                    177 cm ≤ DecayR < 295 cm) to every cut level
-    print_latex     : bool       – emit LaTeX table rows instead of plain text
-    use_weights     : bool|None  – True  → always use the "weight" branch
-                                   False → always use raw event counts
-                                   None  → auto: weighted for signal, counts for data
-    use_l1_prescale : bool|None  – True  → multiply weight by "L1_prescale_weight"
-                                   False → ignore L1_prescale_weight even if present
-                                   None  → auto: apply if branch exists and use_weights
-    dnn_inc_cut     : float      – score threshold for the inclusive DNN (default 0.97)
-    dnn_depth_cut   : float      – score threshold for the depth DNN (default 0.95)
+    file_path          : str        – path to the input ROOT file
+    tree_name          : str        – name of the TTree inside the file
+    apply_llp_truth    : bool       – if True, prepend the LLP-HCAL truth requirement
+                                      (one of jet0 / jet1 matched to an LLP with
+                                       177 cm ≤ DecayR < 295 cm) to every cut level
+    print_latex        : bool       – emit LaTeX table rows instead of plain text
+    use_weights        : bool|None  – True  → always use the "weight" branch
+                                      False → always use raw event counts
+                                      None  → auto: weighted for signal, counts for data
+    use_l1_prescale    : bool|None  – True  → multiply weight by "L1_prescale_weight"
+                                      False → ignore L1_prescale_weight even if present
+                                      None  → auto: apply if branch exists and use_weights
+    dnn_inc_cut        : float      – inclusive DNN threshold for LJDC (and SJDC if
+                                      dnn_inc_cut_sjdc is not given); default 0.97
+    dnn_depth_cut      : float      – depth DNN threshold for LJDC (and SJDC if
+                                      dnn_depth_cut_sjdc is not given); default 0.95
+    dnn_inc_cut_sjdc   : float|None – inclusive DNN threshold for SJDC; if None, uses
+                                      dnn_inc_cut (same cut for both categories)
+    dnn_depth_cut_sjdc : float|None – depth DNN threshold for SJDC; if None, uses
+                                      dnn_depth_cut (same cut for both categories)
     """
+    # Per-category cut values (fall back to shared value when SJDC override not given)
+    _inc_ljdc   = dnn_inc_cut
+    _inc_sjdc   = dnn_inc_cut_sjdc   if dnn_inc_cut_sjdc   is not None else dnn_inc_cut
+    _depth_ljdc = dnn_depth_cut
+    _depth_sjdc = dnn_depth_cut_sjdc if dnn_depth_cut_sjdc is not None else dnn_depth_cut
 
     # ── open file / tree ──────────────────────────────────────────────────────
     f    = ROOT.TFile.Open(file_path)
@@ -139,16 +152,16 @@ def run_cutflow(
     SJDC = "(jet1_DepthTagCand == 1 && jet0_InclTagCand == 1)"
     JDC_OR = f"({LJDC} || {SJDC})"
 
-    # DNN cuts applied per-category so the correct jet role is used
+    # DNN cuts applied per-category so the correct jet role and threshold are used
     # "inc" cut: applied to the inclusive-tagged jet
     dnn_inc = (
-        f"(({SJDC} && jet0_scores_inc_train80 > {dnn_inc_cut}) || "
-        f" ({LJDC} && jet1_scores_inc_train80 > {dnn_inc_cut}))"
+        f"(({SJDC} && jet0_scores_inc_train80 > {_inc_sjdc}) || "
+        f" ({LJDC} && jet1_scores_inc_train80 > {_inc_ljdc}))"
     )
     # "depth" cut: applied to the depth-tagged jet
     dnn_depth = (
-        f"(({SJDC} && jet1_scores_depth_LLPanywhere > {dnn_depth_cut}) || "
-        f" ({LJDC} && jet0_scores_depth_LLPanywhere > {dnn_depth_cut}))"
+        f"(({SJDC} && jet1_scores_depth_LLPanywhere > {_depth_sjdc}) || "
+        f" ({LJDC} && jet0_scores_depth_LLPanywhere > {_depth_ljdc}))"
     )
 
     # ── LLP truth cut ─────────────────────────────────────────────────────────
@@ -175,10 +188,13 @@ def run_cutflow(
 #        ("Trigger (L1 DoubleLLPJet40)",         "L1_DoubleLLPJet40 == 1"),
 #        ("Trigger (L1, but not L1 DoubleLLPJet40)",         "L1_DoubleLLPJet40 == 0 && Pass_L1SingleLLPJet == 1"),
         ("Trigger (HLT)",                       "Pass_HLTDisplacedJet == 1"),
-        ("LJDC or SJDC",                        JDC_OR),
+        # ("LJDC or SJDC",                        JDC_OR),
+       ("$pT>60, |\eta|<1.26; pT>40, |\eta|<2.0$", "((jet0_Pt > 60 && abs(jet0_Eta) < 1.26 && jet1_Pt > 40 && abs(jet1_Eta) < 2.0) || (jet1_Pt > 60 && abs(jet1_Eta) < 1.26 && jet0_Pt > 40 && abs(jet0_Eta) < 2.0))"),
         ("$\Delta\phi$ (beam halo) veto",       "abs(jet0_jet1_dPhi) > 0.2"),
-        (f"DNN $>{dnn_inc_cut}$ (inc)",           dnn_inc),
-        (f"DNN $>{dnn_depth_cut}$ (depth)",      dnn_depth),
+        (f"DNN $>{_inc_ljdc}$ / $>{_inc_sjdc}$ (inc)"     if _inc_ljdc != _inc_sjdc
+         else f"DNN $>{_inc_ljdc}$ (inc)",        dnn_inc),
+        (f"DNN $>{_depth_ljdc}$ / $>{_depth_sjdc}$ (depth)" if _depth_ljdc != _depth_sjdc
+         else f"DNN $>{_depth_ljdc}$ (depth)",    dnn_depth),
     ]
 
     if sample["kind"] == "data":
@@ -328,11 +344,19 @@ def _parse_args():
     )
     parser.add_argument(
         "--inc", type=float, default=0.97,
-        help="Inclusive DNN score threshold (default: 0.97).",
+        help="Inclusive DNN score threshold for LJDC (default: 0.97).",
     )
     parser.add_argument(
         "--depth", type=float, default=0.95,
-        help="Depth DNN score threshold (default: 0.95).",
+        help="Depth DNN score threshold for LJDC (default: 0.95).",
+    )
+    parser.add_argument(
+        "--inc-sjdc", type=float, default=None,
+        help="Inclusive DNN score threshold for SJDC; if omitted, uses --inc.",
+    )
+    parser.add_argument(
+        "--depth-sjdc", type=float, default=None,
+        help="Depth DNN score threshold for SJDC; if omitted, uses --depth.",
     )
     parser.add_argument(
         "--truth", action="store_true",
