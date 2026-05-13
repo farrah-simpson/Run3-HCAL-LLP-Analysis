@@ -36,6 +36,7 @@ debug = False
 pT_bins  = np.array([0, 40, 50, 60, 70, 80, 100, 120, 160, 240, 400], dtype=float)
 eta_bins = np.linspace(-1.26, 1.26, 9)
 phi_bins = np.linspace(-np.pi, np.pi, 9)
+# phi_bins = np.linspace(-np.pi, np.pi, 2) # one bin in phi to test impact on prediction closure
 b_tag_bins = np.array([0, 0.2435, 1.0], dtype=float)
 c_tag_bins = np.array([0, 0.102,  1.0], dtype=float)
 
@@ -284,7 +285,7 @@ def _h3_model(name):
     )
 
 
-def book_all_histograms(rdf_base):
+def book_all_histograms(rdf_base, is_mc=False):
     """
     Book histograms for the three b_tag_combined options in one shot.
 
@@ -310,8 +311,13 @@ def book_all_histograms(rdf_base):
     mistag_1_str = f"jet1_scores_depth_LLPanywhere >= {DNN_cut_SJDC} && jet1_scores_depth_LLPanywhere < 1.1"
 
     # Emulated trigger: leading jet has depth tag candidate + subleading has inclusive tag candidate
-    depth_j0_str = "jet0_DepthTagCand == 1 && jet1_InclTagCand == 1"
-    depth_j1_str = "jet1_DepthTagCand == 1 && jet0_InclTagCand == 1"
+    # For MC (W+Jets), DepthTagCand/InclTagCand are almost never set; require 2 valid jets instead
+    if is_mc:
+        depth_j0_str = "validJet >= 1"
+        depth_j1_str = "validJet >= 1"
+    else:
+        depth_j0_str = "jet0_DepthTagCand == 1 && jet1_InclTagCand == 1"
+        depth_j1_str = "jet1_DepthTagCand == 1 && jet0_InclTagCand == 1"
 
     low_PV_str  = "PV >= 0  && PV < 42"
     high_PV_str = "PV >= 42 && PV < 100"
@@ -697,22 +703,29 @@ _file_map = {
     "2023_Cv4": ["/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v5.3/minituple_data_2023Cv4_scores.root"],
     "2023_Dv1": ["/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v5.3/minituple_data_2023Dv1_scores.root"],
     "2023_Dv2": ["/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v5.3/minituple_data_2023Dv2_scores.root"],
+    "WPlusJets": ["/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v4.1/minituple_WJetsToLNu_MC22preEE_NoSel_scores_NoSel_scores.root"]
 }
 
 
 def _build_rdf_base(era_key):
     """Build the base RDataFrame (run exclusion + deltaPhi) for a given era."""
     rdf = ROOT.RDataFrame("NoSel", _file_map[era_key])
+    is_mc = era_key == "WPlusJets"
     if era_key == "2022_2023":
         run_excl = "g_excl_runs_2022_2023.find(run) == g_excl_runs_2022_2023.end()"
     elif era_key.startswith("2023"):
         run_excl = "g_excl_runs_2023.find(run) == g_excl_runs_2023.end()"
     else:
         run_excl = "g_excl_runs_2022.find(run) == g_excl_runs_2022.end()"
-    return (rdf
-            .Filter(run_excl, "run exclusion")
-            .Filter("abs(jet0_jet1_dPhi) > 0.2 && Flag_METFilters_2022_2023_PromptReco == 1",
-                    "deltaPhi + METFilters"))
+    # Flag_METFilters_2022_2023_PromptReco is always 0 in MC; skip it for MC samples
+    met_filter = "abs(jet0_jet1_dPhi) > 0.2" if is_mc else \
+                 "abs(jet0_jet1_dPhi) > 0.2 && Flag_METFilters_2022_2023_PromptReco == 1"
+    rdf_filtered = (rdf
+                    .Filter(run_excl, "run exclusion")
+                    .Filter(met_filter, "deltaPhi + METFilters"))
+    if is_mc:
+        rdf_filtered = rdf_filtered.Filter("Pass_WPlusJets == 1", "W+Jets selection")
+    return rdf_filtered
 
 
 def _run_one(rdf_base, row, b_tag_combined_flag):
@@ -744,7 +757,7 @@ def _run_one(rdf_base, row, b_tag_combined_flag):
     print(f"{'='*60}")
 
     print("Booking all histograms (lazy, no I/O yet)...")
-    booked = book_all_histograms(rdf_base)
+    booked = book_all_histograms(rdf_base, is_mc=(era == "WPlusJets"))
 
     def _pt(v): return str(v).replace("0.", "pt")
     btag_str = "_combined" if b_tag_combined else ""
