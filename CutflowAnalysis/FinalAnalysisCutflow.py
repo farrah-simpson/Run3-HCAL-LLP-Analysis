@@ -188,8 +188,8 @@ def run_cutflow(
 #        ("Trigger (L1 DoubleLLPJet40)",         "L1_DoubleLLPJet40 == 1"),
 #        ("Trigger (L1, but not L1 DoubleLLPJet40)",         "L1_DoubleLLPJet40 == 0 && Pass_L1SingleLLPJet == 1"),
         ("Trigger (HLT)",                       "Pass_HLTDisplacedJet == 1"),
-        # ("LJDC or SJDC",                        JDC_OR),
        ("$pT>60, |\eta|<1.26; pT>40, |\eta|<2.0$", "((jet0_Pt > 60 && abs(jet0_Eta) < 1.26 && jet1_Pt > 40 && abs(jet1_Eta) < 2.0) || (jet1_Pt > 60 && abs(jet1_Eta) < 1.26 && jet0_Pt > 40 && abs(jet0_Eta) < 2.0))"),
+        ("LJDC or SJDC",                        JDC_OR),
         ("$\Delta\phi$ (beam halo) veto",       "abs(jet0_jet1_dPhi) > 0.2"),
         (f"DNN $>{_inc_ljdc}$ / $>{_inc_sjdc}$ (inc)"     if _inc_ljdc != _inc_sjdc
          else f"DNN $>{_inc_ljdc}$ (inc)",        dnn_inc),
@@ -254,14 +254,20 @@ def run_cutflow(
 
     _hist_counter = [0]   # unique name counter to avoid ROOT name collisions
 
-    def get_yield(selection):
+    # Weight expression used for "All" row: lumi×xsec only, no L1 prescale factor.
+    # The L1 prescale weight (fractional or binary) only applies from the trigger
+    # rows onward, so "All" reflects the true pre-trigger expected yield.
+    base_weight_expr = "weight" if use_weights else None
+
+    def get_yield(selection, wexpr=None):
         """Return weighted yield for a selection, or raw count if weight_expr is None."""
-        if weight_expr is None:
+        wexpr = wexpr if wexpr is not None else weight_expr
+        if wexpr is None:
             return float(tree.GetEntries(selection) if selection else tree.GetEntries())
         _hist_counter[0] += 1
         hname = f"_cutflow_h{_hist_counter[0]}"
-        draw_expr = f"{weight_expr}>>{hname}(1,-1e6,1e6)"
-        cut = f"({weight_expr})*({selection})" if selection else weight_expr
+        draw_expr = f"{wexpr}>>{hname}(1,-1e6,1e6)"
+        cut = f"({wexpr})*({selection})" if selection else wexpr
         tree.Draw(draw_expr, cut, "goff")
         h = ROOT.gDirectory.Get(hname)
         result = h.GetSumOfWeights() if h else 0.0
@@ -273,7 +279,7 @@ def run_cutflow(
     if weight_expr is None:
         weight_note = ""
     else:
-        weight_note = f" [weighted by: {weight_expr}]"
+        weight_note = f" [weighted by: {weight_expr}; 'All' row by: {base_weight_expr}]"
     print("\n")
     print(f"Cutflow — {sample['plain']}{truth_note}{weight_note}")
     print("\n")
@@ -296,7 +302,8 @@ def run_cutflow(
 
     for i, (label, _) in enumerate(steps):
         sel   = cum_cuts[i]
-        n_evt = get_yield(sel)
+        # "All" row: weight by lumi×xsec only — L1 prescale not yet applied
+        n_evt = get_yield(sel, wexpr=base_weight_expr if i == 0 else None)
 
         if i == 0:
             init = n_evt      # "All" row sets the primary denominator
@@ -383,9 +390,11 @@ if __name__ == "__main__":
 
     # --- L1 prescale weighted counts (no gen/PU weight) -----------------------
     run_cutflow(args.file, args.tree,
-                apply_llp_truth = args.truth,
-                use_weights     = args.weights,
-                use_l1_prescale = args.l1_prescale,
-                print_latex     = args.latex,
-                dnn_inc_cut     = args.inc,
-                dnn_depth_cut   = args.depth)
+                apply_llp_truth    = args.truth,
+                use_weights        = args.weights,
+                use_l1_prescale    = args.l1_prescale,
+                print_latex        = args.latex,
+                dnn_inc_cut        = args.inc,
+                dnn_depth_cut      = args.depth,
+                dnn_inc_cut_sjdc   = args.inc_sjdc,
+                dnn_depth_cut_sjdc = args.depth_sjdc)

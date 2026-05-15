@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Update these!
-output_basedir=/eos/home-g/gkopp/LLP_Analysis/MiniTuples/v5.1/
+output_basedir=/eos/home-g/gkopp/LLP_Analysis/MiniTuples/v5.4/
 proxypath=~/private/x509up_u101898
 
-for input_file in ../Ntuples_v5/InputFiles_HToSSTo4B_MH125_MS50_CTau3000_L1triggers_v5_testpath.txt; do
+for input_file in ../Ntuples_v5/InputFiles_HToSSTo4B_MH*L1triggers_v5.txt; do
 
   filetag=`basename $input_file .txt | sed 's/^InputFiles_//'`
   echo "Submitting job for: $input_files"
