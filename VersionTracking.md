@@ -98,6 +98,9 @@ Updates:
 * S major, S minor jet spread variables calculated
 
 ### v3.0
+Updates (not sure which version actually):
+* updated isRechitValid to include HE rechits and PF cuts there
+  
 ```
 /eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.0/minituple_v3.0_LLP_MC_ggH_HToSSTobbbb_MH-125_MS-15_CTau1000_13p6TeV_2023_11_23.root
 /eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.0/minituple_v3.0_LLP_MC_ggH_HToSSTobbbb_MH-350_MS-80_CTau500_13p6TeV_2023_11_29.root
@@ -277,6 +280,7 @@ Updates:
 ## V4
 
 ## V5 
+* MET filters
 
 ### v5.1
 Updates:
@@ -285,17 +289,19 @@ Updates:
 * Removed MET sum ET from W+jets selection
 * Updated PF cut thresholds for HB and HE, and done per year
 * Save jets with pT > 20, eta < 2
+* Trigger prescales included and weighting for LLP MC samples
 
-Ongoing wish list:
-* MET filters
-* Trigger prescales
-* Some duplication in coding between event and jet filled trees, can this be reduced or simplified?
-* Should be able to do BDT helper with automated read-in of files instead of MyTags class in .h file
-
-Updates:
-* updated isRechitValid to include HE rechits and PF cuts there
-  
 ### v5.2
 Updates:
 * PassEventPreselection now includes the PassHLT requirement
 * weights contain MC weights and event_weights contain trigger SF values correctly added
+
+### v5.3
+* JER up and down for LLP MC
+* v5 DNN scores used, added scores to v5.2 minituples
+
+### v5.4
+* Re-done trigger re-weighting by trigger re-emulation
+
+Ongoing wish list:
+* Some duplication in coding between event and jet filled trees, can this be reduced or simplified?

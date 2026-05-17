@@ -10,6 +10,9 @@ In `condor_run.py`: Modify file paths in "MODIFY ME" section, if necessary.
 voms-proxy-init --voms cms 
 ```
 Copy over output file from `/tmp/` area into local, private, or home area.
+```
+cp /tmp/x509up_u101898 ~/private/x509up_u101898
+```
 
 **3. Run:**
 

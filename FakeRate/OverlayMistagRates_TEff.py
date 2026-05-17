@@ -11,14 +11,16 @@ from ROOT import SetOwnership
 from MisTagParametrization_3D import ProjectHistogram, ResetAxis
 
 debug = False
-DNN_cut = 0.9
-era = "2023"
+era = "2022" # "2022", "2023", "2022_PU", "2023_PU", or "combined" (all 2022 vs all 2023)
+DNN_cut = 0.965 # for LJDC depth cut
 
 # ------------------------------------------------------------------------------
 def LabelCMS(xpos=0.17, ypos=0.85, text_size=0.036):
     cmsLabel = "#scale[1]{#bf{CMS} }"
     cmsLabelExtra = "#scale[0.8]{#it{Private Work}}"
     yearLumi = "#scale[0.85]{2023 (13.6 TeV)}"
+    if "2022" in era: yearLumi = "#scale[0.85]{2022 (13.6 TeV)}"
+    if era == "combined": yearLumi = "#scale[0.85]{2022-2023 (13.6 TeV)}"
 
     stamp_text = ROOT.TLatex()
     stamp_text.SetNDC()
@@ -29,8 +31,8 @@ def LabelCMS(xpos=0.17, ypos=0.85, text_size=0.036):
 
     if ypos == 0.85:
         stamp_text.DrawLatex(xpos + 0.62, ypos + 0.06, yearLumi)
-        stamp_text.DrawLatex(xpos + 0.4,  ypos,        "#scale[0.65]{DNN score > " + str(DNN_cut) + "}")
-        stamp_text.DrawLatex(xpos + 0.4,  ypos - 0.04, "#scale[0.65]{Era = " + era + "}")
+        stamp_text.DrawLatex(xpos + 0.35,  ypos,        "#scale[0.65]{DNN score > " + str(DNN_cut) + "}")
+        stamp_text.DrawLatex(xpos + 0.35,  ypos - 0.04, "#scale[0.65]{Era = " + era + "}")
     else:
         stamp_text.DrawLatex(xpos + 0.6,  ypos + 0.03, yearLumi)
         stamp_text.DrawLatex(xpos + 0.3,  ypos,        "#scale[0.65]{DNN score > " + str(DNN_cut) + "}")
@@ -139,9 +141,13 @@ def OverlayHistograms(file_paths, hist_name_all, hist_name_mistag):
 
     legend_labels = ["2023 Cv1", "2023 Cv2", "2023 Cv3", "2023 Cv4", "2023 Dv1", "2023 Dv2"]
     if era == "2022": legend_labels = ["2022 D", "2022 E", "2022 F", "2022 G"]
+    if era == "combined": legend_labels = ["2022 D-G", "2023 Cv1-Dv2"]
+    if era == "2022_PU": legend_labels = ["2022 low PU", "2022 high PU"]
+    if era == "2023_PU": legend_labels = ["2023 low PU", "2023 high PU"]
 
     DrawCanvasAndPlots_overlay(
         "c1", "Projection plots", ": LLP skim, different eras", " in CR for different eras",
+        # "c1", "Projection plots", ": LLP skim, different eras", " in CR for different pileup regions",
         [pt_graphs, eta_graphs, phi_graphs],
         legend_labels,
         "Overlay_LLPskim_Mistag",
@@ -235,6 +241,21 @@ if __name__ == "__main__":
             "output_3D_hists_depth_leading_2022_E.root",
             "output_3D_hists_depth_leading_2022_F.root",
             "output_3D_hists_depth_leading_2022_G.root"
+        ]
+    if era == "combined":
+        root_files = [
+            "output_3D_hists_depth_leading_2022.root",
+            "output_3D_hists_depth_leading_2023.root"
+        ]
+    if era == "2022_PU":
+        root_files = [
+            "output_3D_hists_depth_lowPV_leading_2022.root",
+            "output_3D_hists_depth_highPV_leading_2022.root"
+        ]
+    if era == "2023_PU":
+        root_files = [
+            "output_3D_hists_depth_lowPV_leading_2023.root",
+            "output_3D_hists_depth_highPV_leading_2023.root"
         ]
 
     hist_name_all    = "hist3d_CR_all"
