@@ -88,7 +88,7 @@ void DisplacedHcalJetAnalyzer( string infiletag = "", string systematic = "Nomin
 
 	// ----- Modify Properties ----- // 
 
-	AnalysisReader.debug		= false; 
+	AnalysisReader.debug		= true; 
 	AnalysisReader.print_counts	= true;
 	AnalysisReader.save_hists	= false;	// For output histograms
 	AnalysisReader.save_trees	= true;		// For minituples

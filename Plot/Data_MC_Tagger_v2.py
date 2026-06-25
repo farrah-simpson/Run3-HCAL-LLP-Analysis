@@ -24,11 +24,11 @@ os.makedirs(folder, exist_ok=True)
 tree_name = "NoSel"
 
 if args.depth:
-    tagger_name = "Depth"
+    tagger_name = "depth"
     score_var = "jet0_scores_depth_anywhere_updated" 
     threshold = 0.
 elif args.inclusive:
-    tagger_name = "Inclusive"
+    tagger_name = "inclusive"
     score_var = "jet0_scores_inc_train80_updated" 
     threshold = 0. 
 else:
@@ -36,12 +36,12 @@ else:
 
 print(f"Using tagger: {tagger_name}")
 
-data_file1 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv1_allscores_NoSel_scores.root")
-data_file2 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv2_allscores_NoSel_scores.root")
-data_file3 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv3_allscores_NoSel_scores.root")
-data_file4 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv4_allscores_NoSel_scores.root")
-data_file5 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Dv1_allscores_NoSel_scores.root")
-data_file6 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Dv2_allscores_NoSel_scores.root")
+data_file1 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv1_allscores_v5updatedscores.root")
+data_file2 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv2_allscores_v5updatedscores.root")
+data_file3 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv3_allscores_v5updatedscores.root")
+data_file4 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv4_allscores_v5updatedscores.root")
+data_file5 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Dv1_allscores_v5updatedscores.root")
+data_file6 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Dv2_allscores_v5updatedscores.root")
 
 
 mc_file   = uproot.open(args.mc) 
@@ -81,7 +81,16 @@ data_trees = [data_tree1, data_tree2, data_tree3, data_tree4, data_tree5, data_t
 
 mc_score   = mc_tree[score_var].array(library="np")
 mc_pass  = mc_tree["Pass_WPlusJets"].array(library="np")
+mc_input_pass_1  = mc_tree["jet0_EleEFrac"].array(library="np")
+mc_input_pass_2  = mc_tree["jet0_S_phiphi"].array(library="np")
+mc_input_pass_3  = mc_tree["jet0_S_etaphi"].array(library="np")
+mc_input_pass_4  = mc_tree["jet0_S_etaeta"].array(library="np")
+mc_input_pass_5  = mc_tree["jet0_Pt"].array(library="np")
+mc_input_pass_6  = mc_tree["jet0_Eta"].array(library="np")
+#mc_input_pass_7  = mc_tree["jet0_ChargedHadEFrac"].array(library="np")
 
+mc_input_inc = mc_tree["jet0_InclTagCand"].array(library="np")
+mc_input_depth = mc_tree["jet0_DepthTagCand"].array(library="np")
 bins = 10
 h_data_comb = ROOT.TH1F("h_data_comb", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
 
@@ -112,10 +121,27 @@ h_data_comb.Sumw2()
 #for val in data_score6[(data_pass6 == 1)]:h_data6.Fill(float(val))
 for tree in data_trees:
     scores = tree[score_var].array(library="np")
-    passed = tree["Pass_WPlusJets"].array(library="np")
-    for val in scores[passed == 1]:
+    passed = tree["Pass_WPlusJets"].array(library="np")#tree["Pass_WPlusJets"].array(library="np")
+    input_passed_1 = tree["jet0_EleEFrac"].array(library="np")
+    input_passed_2 = tree["jet0_S_phiphi"].array(library="np")
+    input_passed_3 = tree["jet0_S_etaphi"].array(library="np")
+    input_passed_4 = tree["jet0_S_etaeta"].array(library="np")
+    input_passed_5 = tree["jet0_Pt"].array(library="np")
+    input_passed_6 = tree["jet0_Eta"].array(library="np")
+    #input_passed_7 = tree["jet0_ChargedHadEFrac"].array(library="np")
+
+    input_passed_inc = tree["jet0_InclTagCand"].array(library="np")
+    input_passed_depth = tree["jet0_DepthTagCand"].array(library="np")
+
+    mask_data = (passed == 1) & (input_passed_5 > 40) & (input_passed_1 < 0.5) #& (input_passed_4 < 0.05) & (input_passed_3 < 0.05) & (input_passed_2 < 0.05) 
+
+    for val in scores[mask_data]:
         h_data_comb.Fill(float(val))
-for val in mc_score[(mc_pass == 1)]:
+
+mask_mc = (mc_pass == 1) & (mc_input_pass_5 > 40) & (mc_input_pass_1 < 0.5) #& (mc_input_pass_2 < 0.05)  & (mc_input_pass_3 < 0.05) & (mc_input_pass_4 < 0.05) 
+
+
+for val in mc_score[mask_mc]:
     h_mc.Fill(float(val))
 
 if h_data_comb.Integral() > 0: h_data_comb.Scale(1.0/h_data_comb.Integral())
@@ -153,7 +179,7 @@ h_ratio_band.SetLineColor(ROOT.kGray+1)
 #h_ratio_band.SetMarkerSize(0)
 
 ymax = max(h_data_comb.GetMaximum(), h_mc.GetMaximum())
-h_data_comb.SetMaximum(1.9 * ymax)
+h_mc.SetMaximum(10000 * ymax)
 
 h_ratio_comb = h_data_comb.Clone("h_ratio_comb")
 for ibin in range(1, h_ratio_comb.GetNbinsX() + 1):
@@ -223,7 +249,7 @@ h_mc.Draw("HIST")
 h_mc_band.Draw("E2 SAME")   # <- error band
 h_mc.Draw("HIST SAME")      # redraw line on top
 
-h_data_comb.Draw("E SAME")
+h_data_comb.Draw("E1 SAME")
 #h_data1.Draw("E SAME")
 #h_data2.Draw("E SAME")
 #h_data3.Draw("E SAME")
@@ -244,9 +270,21 @@ legend.SetTextSize(0.045)
 #legend.AddEntry(h_data6, "Run 2023Dv2", "l")
 
 legend.AddEntry(h_mc, "W+Jets MC", "l")
-legend.AddEntry(h_data_comb, "Combined Run 2023", "lep")
+legend.AddEntry(h_data_comb, "Combined Zmu Run 2023", "lep")
 
 legend.Draw()
+
+latex = ROOT.TLatex()
+latex.SetNDC()
+latex.SetTextSize(0.035)
+
+latex.DrawLatex(0.22, 0.77, "Pass W+jets selection");
+latex.DrawLatex(0.22, 0.72, "p_{T} (leading jet) > 40 GeV");
+#latex.DrawLatex(0.22, 0.67, "|#eta (leading jet)| < 1.26");
+latex.DrawLatex(0.22, 0.62, "EleEFrac (leading jet) < 0.5");
+#latex.DrawLatex(0.22, 0.57, "S_{#phi#phi} < 0.05");
+#latex.DrawLatex(0.22, 0.52, "S_{#eta#phi} < 0.05");
+#latex.DrawLatex(0.22, 0.47, "S_{#eta#eta} < 0.05");
 
 stamp = ROOT.TLatex()
 stamp.SetNDC()
@@ -276,7 +314,7 @@ h_ratio_comb.GetYaxis().SetTitleOffset(0.42)
 h_ratio_comb.GetYaxis().CenterTitle(True)
 h_ratio_comb.GetYaxis().SetNdivisions(505)
 
-h_ratio_comb.GetXaxis().SetTitle(f"{tagger_name} score")
+h_ratio_comb.GetXaxis().SetTitle(f"Leading jet {tagger_name} score")
 h_ratio_comb.GetXaxis().SetTitleSize(0.12)
 h_ratio_comb.GetXaxis().SetLabelSize(0.10)
 h_ratio_comb.GetXaxis().SetTitleOffset(1.0)

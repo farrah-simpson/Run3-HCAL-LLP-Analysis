@@ -293,8 +293,7 @@ class Runner:
 
             # Add scores
             for i in range(num_jets):
-                if depth_handler is not None:
-                    dataframe[f'jet{i}_scores_depth_LLPanywhere'] = preds[i][:,0]
+                dataframe[f'jet{i}_scores_depth_LLPanywhere'] = preds[i][:,0]
                 dataframe[f'jet{i}_scores_inc_train80'] = preds_inc[i][:,0]
 
             # Convert to ROOT-safe numpy arrays
