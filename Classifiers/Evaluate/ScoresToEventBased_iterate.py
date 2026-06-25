@@ -43,7 +43,7 @@ class DataProcessor:
 
         # Branch filtering (same as original code)
         include_patterns = ["*"]
-        exclude_patterns = ["*_rechit_*", "HLT*"]
+        exclude_patterns = ["*_rechit_*"] # , "HLT*"
 
         all_branches = sig_tree.keys()
 
@@ -82,7 +82,7 @@ class DataProcessor:
         print("Processing...")
 
         features = ['perJet_Eta', 'perJet_Mass', 
-    #    'perJet_S_phiphi', 'perJet_S_etaeta', 'perJet_S_etaphi', 
+       'perJet_S_phiphi', 'perJet_S_etaeta', 'perJet_S_etaphi', # for v5 DNN, remove for v6 DNN
        'perJet_Tracks_dR', 
        'perJet_Track0dR', 'perJet_Track0dEta', 'perJet_Track0dPhi', 
        'perJet_Track1dR', 'perJet_Track1dEta', 'perJet_Track1dPhi',
@@ -241,7 +241,8 @@ class Runner:
         )
         incl_handler.load()
 
-        output_filename = f"{self.sig[:-5]}_{self.tree}_scores.root"
+        # output_filename = f"{self.sig[:-5]}_{self.tree}_scores.root"
+        output_filename = f"{self.sig[:-5]}_scores.root"
 
         first_write = True
         outfile = None
@@ -252,7 +253,7 @@ class Runner:
             branches = f[self.tree].keys()
 
         include_patterns = ["*"]
-        exclude_patterns = ["*_rechit_*", "HLT*"]
+        exclude_patterns = ["*_rechit_*"]
 
         included = set()
         for p in include_patterns:
