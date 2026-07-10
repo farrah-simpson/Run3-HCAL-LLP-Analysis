@@ -14,6 +14,7 @@ args = parser.parse_args()
 ROOT.gROOT.SetBatch(True)
 ROOT.gStyle.SetOptStat(0)
 
+era = "postBPix"
 cmsLabel = "#scale[1.0]{#bf{CMS}} #scale[0.8]{#it{Work in Progress}}"
 
 xpos = 0.16
@@ -25,7 +26,7 @@ tree_name = "NoSel"
 
 if args.depth:
     tagger_name = "depth"
-    score_var = "jet0_scores_depth_anywhere_updated" 
+    score_var = "jet0_scores_depth_LLPanywhere_updated" 
     threshold = 0.
 elif args.inclusive:
     tagger_name = "inclusive"
@@ -36,48 +37,31 @@ else:
 
 print(f"Using tagger: {tagger_name}")
 
-data_file1 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv1_allscores_v5updatedscores.root")
-data_file2 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv2_allscores_v5updatedscores.root")
-data_file3 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv3_allscores_v5updatedscores.root")
-data_file4 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv4_allscores_v5updatedscores.root")
-data_file5 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Dv1_allscores_v5updatedscores.root")
-data_file6 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Dv2_allscores_v5updatedscores.root")
+if era == "preBPix":
+    data_file1 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv1_allscores_v7_cat12.root")
+    data_file2 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv2_allscores_v7_cat12.root")
+    data_file3 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv3_allscores_v7_cat12.root")
+    data_file4 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Cv4_allscores_v7_cat12.root")
+elif era == "postBPix":
+    data_file5 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Dv1_allscores_v7_cat3.root")
+    data_file6 = uproot.open("/eos/cms/store/group/phys_exotica/HCAL_LLP/MiniTuples/v3.16/minituples_Zmu_2023Dv2_allscores_v7_cat3.root")
 
 
 mc_file   = uproot.open(args.mc) 
 
-data_tree1 = data_file1[tree_name]
-data_tree2 = data_file2[tree_name]
-data_tree3 = data_file3[tree_name]
-data_tree4 = data_file4[tree_name]
-data_tree5 = data_file5[tree_name]
-data_tree6 = data_file6[tree_name]
+if era == "preBPix":
+    data_tree1 = data_file1[tree_name]
+    data_tree2 = data_file2[tree_name]
+    data_tree3 = data_file3[tree_name]
+    data_tree4 = data_file4[tree_name]
+elif era == "postBPix":
+    data_tree5 = data_file5[tree_name]
+    data_tree6 = data_file6[tree_name]
 
 mc_tree   = mc_file[tree_name]
 
-data_trees = [data_tree1, data_tree2, data_tree3, data_tree4, data_tree5, data_tree6]
-
-#if tagger_name == "Depth": 
-#    data_score1  = data_tree1[score_var].array(library="np")
-#    data_score2  = data_tree2[score_var].array(library="np")
-#    data_score3  = data_tree3[score_var].array(library="np")
-#    data_score4  = data_tree4[score_var].array(library="np")
-#    data_score5  = data_tree5[score_var].array(library="np")
-#    data_score6  = data_tree6[score_var].array(library="np")
-#else: 
-#    data_score1  = data_tree1[score_var].array(library="np")
-#    data_score2  = data_tree2[score_var].array(library="np")
-#    data_score3  = data_tree3[score_var].array(library="np")
-#    data_score4  = data_tree4[score_var].array(library="np")
-#    data_score5  = data_tree5[score_var].array(library="np")
-#    data_score6  = data_tree6[score_var].array(library="np")
-
-#data_pass1 = data_tree1["Pass_WPlusJets"].array(library="np")
-#data_pass2 = data_tree2["Pass_WPlusJets"].array(library="np")
-#data_pass3 = data_tree3["Pass_WPlusJets"].array(library="np")
-#data_pass4 = data_tree4["Pass_WPlusJets"].array(library="np")
-#data_pass5 = data_tree5["Pass_WPlusJets"].array(library="np")
-#data_pass6 = data_tree6["Pass_WPlusJets"].array(library="np")
+if era == "preBPix": data_trees = [data_tree1, data_tree2, data_tree3, data_tree4]
+elif era == "postBPix": data_trees = [data_tree5, data_tree6]
 
 mc_score   = mc_tree[score_var].array(library="np")
 mc_pass  = mc_tree["Pass_WPlusJets"].array(library="np")
@@ -94,34 +78,14 @@ mc_input_depth = mc_tree["jet0_DepthTagCand"].array(library="np")
 bins = 10
 h_data_comb = ROOT.TH1F("h_data_comb", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
 
-#h_data1 = ROOT.TH1F("h_data1", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
-#h_data2 = ROOT.TH1F("h_data2", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
-#h_data3 = ROOT.TH1F("h_data3", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
-#h_data4 = ROOT.TH1F("h_data4", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
-#h_data5 = ROOT.TH1F("h_data5", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
-#h_data6 = ROOT.TH1F("h_data6", f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
-
 h_mc   = ROOT.TH1F("h_mc",   f"{tagger_name} score;{tagger_name} score;Normalized entries", bins, 0, 1)
 
 h_mc.Sumw2()
 h_data_comb.Sumw2()
 
-#h_data1.Sumw2()
-#h_data2.Sumw2()
-#h_data3.Sumw2()
-#h_data4.Sumw2()
-#h_data5.Sumw2()
-#h_data6.Sumw2()
-
-#for val in data_score1[(data_pass1 == 1)]:h_data1.Fill(float(val))
-#for val in data_score2[(data_pass2 == 1)]:h_data2.Fill(float(val))
-#for val in data_score3[(data_pass3 == 1)]:h_data3.Fill(float(val))
-#for val in data_score4[(data_pass4 == 1)]:h_data4.Fill(float(val))
-#for val in data_score5[(data_pass5 == 1)]:h_data5.Fill(float(val))
-#for val in data_score6[(data_pass6 == 1)]:h_data6.Fill(float(val))
 for tree in data_trees:
     scores = tree[score_var].array(library="np")
-    passed = tree["Pass_WPlusJets"].array(library="np")#tree["Pass_WPlusJets"].array(library="np")
+    passed = tree["Pass_WPlusJets"].array(library="np")
     input_passed_1 = tree["jet0_EleEFrac"].array(library="np")
     input_passed_2 = tree["jet0_S_phiphi"].array(library="np")
     input_passed_3 = tree["jet0_S_etaphi"].array(library="np")
@@ -133,13 +97,12 @@ for tree in data_trees:
     input_passed_inc = tree["jet0_InclTagCand"].array(library="np")
     input_passed_depth = tree["jet0_DepthTagCand"].array(library="np")
 
-    mask_data = (passed == 1) & (input_passed_5 > 40) & (input_passed_1 < 0.5) #& (input_passed_4 < 0.05) & (input_passed_3 < 0.05) & (input_passed_2 < 0.05) 
+    mask_data = (passed == 1) & (input_passed_5 > 40) & (input_passed_1 < 0.7) & (input_passed_3 < 0.05) & (input_passed_2 < 0.05) 
 
     for val in scores[mask_data]:
         h_data_comb.Fill(float(val))
 
-mask_mc = (mc_pass == 1) & (mc_input_pass_5 > 40) & (mc_input_pass_1 < 0.5) #& (mc_input_pass_2 < 0.05)  & (mc_input_pass_3 < 0.05) & (mc_input_pass_4 < 0.05) 
-
+mask_mc = (mc_pass == 1) & (mc_input_pass_5 > 40)  & (mc_input_pass_1 < 0.7) #& (mc_input_pass_2 < 0.05)  & (mc_input_pass_3 < 0.05) & (mc_input_pass_4 < 0.05) 
 
 for val in mc_score[mask_mc]:
     h_mc.Fill(float(val))
@@ -147,12 +110,14 @@ for val in mc_score[mask_mc]:
 if h_data_comb.Integral() > 0: h_data_comb.Scale(1.0/h_data_comb.Integral())
 if h_mc.Integral() > 0: h_mc.Scale(1.0/h_mc.Integral())
 
-#if h_data1.Integral() > 0: h_data1.Scale(1.0/h_data1.Integral())
-#if h_data2.Integral() > 0: h_data2.Scale(1.0/h_data2.Integral())
-#if h_data3.Integral() > 0: h_data3.Scale(1.0/h_data3.Integral())
-#if h_data4.Integral() > 0: h_data4.Scale(1.0/h_data4.Integral())
-#if h_data5.Integral() > 0: h_data5.Scale(1.0/h_data5.Integral())
-#if h_data6.Integral() > 0: h_data6.Scale(1.0/h_data6.Integral())
+h_data_comb = h_data_comb.GetCumulative(False)
+h_mc   = h_mc.GetCumulative(False)
+
+#for h in [h_data_comb, h_mc]:
+#    for i in range(0, h.GetNbinsX()+2):   # includes underflow (0) and overflow (N+1)
+#        if h.GetBinContent(i) <= 0:
+#            h.SetBinContent(i, 1e-10)
+#h_data_comb.SetMinimum(1e-10)
 
 h_mc_band = h_mc.Clone("h_mc_band")
 h_mc_band.SetDirectory(0)
@@ -178,8 +143,9 @@ h_ratio_band.SetFillColorAlpha(ROOT.kGray+1, 0.35)
 h_ratio_band.SetLineColor(ROOT.kGray+1)
 #h_ratio_band.SetMarkerSize(0)
 
-ymax = max(h_data_comb.GetMaximum(), h_mc.GetMaximum())
-h_mc.SetMaximum(10000 * ymax)
+ymax = max(h_mc.GetMaximum(), h_mc.GetMaximum())
+#h_mc.SetMinimum(0.0)
+h_mc.SetMaximum(1000 * ymax)
 
 h_ratio_comb = h_data_comb.Clone("h_ratio_comb")
 for ibin in range(1, h_ratio_comb.GetNbinsX() + 1):
@@ -219,7 +185,7 @@ pad1.Draw()
 pad1.SetLogy()
 pad1.cd()
 colors = [
-    ROOT.kRed,
+    ROOT.kBlack,
     ROOT.kBlue,
     ROOT.kCyan,
     ROOT.kGreen+2,
@@ -241,7 +207,7 @@ h_data_comb.SetMarkerColor(colors[0])
 h_data_comb.SetMarkerStyle(markers[0])
 h_data_comb.SetLineWidth(2)
 
-h_mc.SetLineColor(ROOT.kBlack)
+h_mc.SetLineColor(ROOT.kRed)
 h_mc.SetLineWidth(2)
 h_mc.SetTitle("")
 
@@ -257,7 +223,7 @@ h_data_comb.Draw("E1 SAME")
 #h_data5.Draw("E SAME")
 #h_data6.Draw("E SAME")
 
-cutLabel = f"{tagger_name} DNN score"
+cutLabel = f"{tagger_name} score;{tagger_name} score;CDF"#f"{tagger_name} DNN score"
 
 legend = ROOT.TLegend(0.5, 0.55, 0.9, 0.9)
 legend.SetTextSize(0.045)
@@ -270,7 +236,8 @@ legend.SetTextSize(0.045)
 #legend.AddEntry(h_data6, "Run 2023Dv2", "l")
 
 legend.AddEntry(h_mc, "W+Jets MC", "l")
-legend.AddEntry(h_data_comb, "Combined Zmu Run 2023", "lep")
+if era == "preBPix": legend.AddEntry(h_data_comb, "Combined Zmu Run 2023C", "lep")
+elif era == "postBPix": legend.AddEntry(h_data_comb, "Combined Zmu Run 2023D", "lep")
 
 legend.Draw()
 
@@ -280,8 +247,9 @@ latex.SetTextSize(0.035)
 
 latex.DrawLatex(0.22, 0.77, "Pass W+jets selection");
 latex.DrawLatex(0.22, 0.72, "p_{T} (leading jet) > 40 GeV");
+#latex.DrawLatex(0.22, 0.67, "Not Depth Candidate");
 #latex.DrawLatex(0.22, 0.67, "|#eta (leading jet)| < 1.26");
-latex.DrawLatex(0.22, 0.62, "EleEFrac (leading jet) < 0.5");
+latex.DrawLatex(0.22, 0.67, "EleEFrac (leading jet) < 0.7");
 #latex.DrawLatex(0.22, 0.57, "S_{#phi#phi} < 0.05");
 #latex.DrawLatex(0.22, 0.52, "S_{#eta#phi} < 0.05");
 #latex.DrawLatex(0.22, 0.47, "S_{#eta#eta} < 0.05");
@@ -324,7 +292,7 @@ h_ratio_comb.GetXaxis().SetTickLength(0.08)
 h_ratio_comb.GetYaxis().SetTickLength(0.04)
 
 h_ratio_comb.SetMinimum(0.01)
-h_ratio_comb.SetMaximum(1.99)
+h_ratio_comb.SetMaximum(3.2)#(2.99)
 
 
 #h_ratio1.SetTitle("")
@@ -366,32 +334,32 @@ line.Draw("SAME")
 
 pad2.Update()
 
-outname = f"{folder}/{tagger_name}_Score_DataMC_combined.png"
+outname = f"{folder}/{tagger_name}_Score_DataMC_"+era+"_CDF_cut.png"
 c.SaveAs(outname)
 print(f"Saved score plot: {outname}")
 
-#sf = []
-#sf_err = []
-#
-#for i in range(1, bins+1):
-#    d = h_data.GetBinContent(i)
-#    m = h_mc.GetBinContent(i)
-#    de = h_data.GetBinError(i)
-#    me = h_mc.GetBinError(i)
-#
-#    if m > 0:
-#        sf_i = d/m
-#        sf_e = sf_i * np.sqrt((de/d)**2 + (me/m)**2) if d>0 else 0
-#    else:
-#        sf_i = 0
-#        sf_e = 0
-#
-#    sf.append(sf_i)
-#    sf_err.append(sf_e)
-#
-#json_file = f"{folder}/{tagger_name}_Score_SF.json"
-#with open(json_file, "w") as f:
-#    json.dump({"sf": sf, "sf_err": sf_err}, f, indent=2)
-#
-#print(f"Saved SFs: {json_file}")
-#
+sf = []
+sf_err = []
+
+for i in range(1, bins+1):
+    d = h_data_comb.GetBinContent(i)
+    m = h_mc.GetBinContent(i)
+    de = h_data_comb.GetBinError(i)
+    me = h_mc.GetBinError(i)
+
+    if m > 0:
+        sf_i = d/m
+        sf_e = sf_i * np.sqrt((de/d)**2 + (me/m)**2) if d>0 else 0
+    else:
+        sf_i = 0
+        sf_e = 0
+
+    sf.append(sf_i)
+    sf_err.append(sf_e)
+
+json_file = f"{folder}/{tagger_name}_Score_SF_{era}_cut.json"
+with open(json_file, "w") as f:
+    json.dump({"sf": sf, "sf_err": sf_err}, f, indent=2)
+
+print(f"Saved SFs: {json_file}")
+
