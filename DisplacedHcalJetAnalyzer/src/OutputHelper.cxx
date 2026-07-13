@@ -387,7 +387,7 @@ void DisplacedHcalJetAnalyzer::DeclareOutputJetTrees(){
 		"PV","jet","muon","ele","pho",
 	};
 
-	vector<string> myvars_float = {"eventHT", "randomFloat", "L1_prescale_weight", "HLT_prescale_weight"};
+	vector<string> myvars_float = {"eventHT", "randomFloat", "L1_prescale_weight", "HLT_prescale_weight", "puWeight", "puWeightUp", "puWeightDown"};
 
 	// Per-trigger L1 prescale values (float; -1 = branch absent)
 	for (int i = 0; i < (int)L1_Indices.size(); i++) {
@@ -537,6 +537,26 @@ void DisplacedHcalJetAnalyzer::ResetOutputBranches( string treename ){
 }
 
 /* ====================================================================================================================== */
+float DisplacedHcalJetAnalyzer::GetPileupWeight( const string &variation ){
+
+	if( isData ) return 1.0;
+
+	auto it = puWeightHists_.find( currentEra_ );
+	if( it == puWeightHists_.end() || !it->second.nom ){
+		cout<<"WARNING: no pileup weight histogram loaded for era "<<currentEra_<<"; returning 1.0"<<endl;
+		return 1.0;
+	}
+
+	TH1D* h = it->second.nom;
+	if( variation == "up" )   h = it->second.up;
+	if( variation == "down" ) h = it->second.down;
+
+	double nPU = (double) n_PV;
+	int bin = h->FindBin( nPU );
+	return (float) h->GetBinContent( bin );
+}
+
+/* ====================================================================================================================== */
 void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename, map<string, bool> Pass_EventSelections ){ 
 	// for the output trees that are filled on a per event basis
 
@@ -666,6 +686,9 @@ void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename, map<string, boo
 			hlt_prescale_weight = 0.0f;
 	}
 	tree_output_vars_float["HLT_prescale_weight"] = hlt_prescale_weight;
+	tree_output_vars_float["puWeight"]     = GetPileupWeight("nominal");
+	tree_output_vars_float["puWeightUp"]   = GetPileupWeight("up");
+	tree_output_vars_float["puWeightDown"] = GetPileupWeight("down");
 
 	tree_output_vars_bool["Flag_HBHENoiseFilter"] = Flag_HBHENoiseFilter;
 	tree_output_vars_bool["Flag_HBHENoiseIsoFilter"] = Flag_HBHENoiseIsoFilter;
@@ -1103,6 +1126,7 @@ void DisplacedHcalJetAnalyzer::FillOutputJetTrees( string treename, int jetIndex
 			hlt_prescale_weight_jet = 0.0f;
 	}
 	jet_tree_output_vars_float["HLT_prescale_weight"] = hlt_prescale_weight_jet;
+
 
 	float deltaR_jet_l1jet;
 	bool JetPassL1Trigger = JetPassesHWQual( jetIndex, deltaR_jet_l1jet );

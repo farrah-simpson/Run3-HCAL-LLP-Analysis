@@ -52,6 +52,12 @@
 
 using namespace std;
 
+struct PileupWeightHists {
+	TH1D* nom  = nullptr;
+	TH1D* up   = nullptr;
+	TH1D* down = nullptr;
+};
+
 class DisplacedHcalJetAnalyzer {
 public :
    TTree          *fChain;   //!pointer to the analyzed TTree or TChain
@@ -84,6 +90,9 @@ public :
    // jet veto mask
    TH2F* maskMap_ = nullptr;
    std::map<std::string, TH2F*> vetoMaps_; // this will load all maps, then look thme up by era
+   
+   // pileup weight map
+   map<string, PileupWeightHists> puWeightHists_;
 
    std::string currentEra_ = "UNKNOWN";
    int currentEraCategory_ = -1;
@@ -961,6 +970,8 @@ public :
    virtual void   updateCurrentEraMap();
    virtual bool   PassJetVetoEvent();
    virtual TH2F*   LoadJetVetoMap(const std::string& filename);
+   PileupWeightHists LoadPileupWeights(const std::string& filename);
+   float GetPileupWeight(const string &variation);
    virtual std::string eraToVetoMapKey(const std::string& era);
    // BDTHelper.cxx
    virtual void   InitializeTMVA(); 
