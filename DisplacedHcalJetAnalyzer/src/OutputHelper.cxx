@@ -67,7 +67,8 @@ void DisplacedHcalJetAnalyzer::DeclareOutputTrees(){
 		// HLT_HT200_L1SingleLLPJet_DisplacedDijet35_Inclusive1PtrkShortSig5, which was
 		// disabled for 34.95% of the data-taking period. Weight is 0 or 1 (random draw
 		// with p=0.6505 keep) when that is the only L1SingleLLPJet HLT that fired, else 1.
-		"HLT_prescale_weight"
+		"HLT_prescale_weight",
+		"puWeight", "puWeightUp", "puWeightDown"
 	};
 
 	for (int i = 0; i < (int)L1_Indices.size(); i++) {
@@ -548,12 +549,16 @@ float DisplacedHcalJetAnalyzer::GetPileupWeight( const string &variation ){
 	}
 
 	TH1D* h = it->second.nom;
-	if( variation == "up" )   h = it->second.up;
-	if( variation == "down" ) h = it->second.down;
+	if (variation == "up" && it->second.up)
+		h = it->second.up;
+	else if (variation == "down" && it->second.down)
+		h = it->second.down;
 
-	double nPU = (double) n_PV;
-	int bin = h->FindBin( nPU );
-	return (float) h->GetBinContent( bin );
+	int bin = h->FindFixBin(n_PV);
+	bin = std::max(1, std::min(bin, h->GetNbinsX()));
+	float weight = h->GetBinContent(bin);
+
+	return weight;
 }
 
 /* ====================================================================================================================== */
