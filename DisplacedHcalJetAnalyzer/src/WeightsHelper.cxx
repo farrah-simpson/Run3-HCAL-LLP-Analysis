@@ -266,7 +266,7 @@ PileupWeightHists DisplacedHcalJetAnalyzer::LoadPileupWeights(const std::string&
     TFile* f = TFile::Open(filename.c_str(), "READ");
     if (!f || f->IsZombie()) {
         if( debug ) cout << "DisplacedHcalJetAnalyzer::LoadPileupWeights(): Cannot open pileup weight file: " << filename << endl;
-        return result; // all nullptr
+        return result;
     }
 
     TH1D* h_nom   = (TH1D*)f->Get("pileup_nom");

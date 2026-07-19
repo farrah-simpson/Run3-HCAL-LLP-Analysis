@@ -554,10 +554,19 @@ float DisplacedHcalJetAnalyzer::GetPileupWeight( const string &variation ){
 	else if (variation == "down" && it->second.down)
 		h = it->second.down;
 
-	int bin = h->FindFixBin(n_PV);
+	float truePU = 0.0;
+	
+	for (size_t i = 0; i < BunchXing.size(); ++i) {
+		if (BunchXing[i] == 0) {
+			truePU = nPUmean[i];
+			break;
+		}
+	}
+	
+	int bin = h->FindFixBin(truePU);
 	bin = std::max(1, std::min(bin, h->GetNbinsX()));
 	float weight = h->GetBinContent(bin);
-
+	
 	return weight;
 }
 
