@@ -175,8 +175,8 @@ public :
    UInt_t          eventTime;
    Float_t         fixedGridRhoFastjetAll;
    Int_t           n_PV;
-   vector<float>   nPUmean;
-   vector<int>     BunchXing;
+   vector<float>   *nPUmean;
+   vector<int>     *BunchXing;
    Float_t         PV_X;
    Float_t         PV_Y;
    Float_t         PV_Z;
@@ -1054,6 +1054,8 @@ void DisplacedHcalJetAnalyzer::Init(TTree *tree)
    // (once per file to be processed).
 
    // Set object pointer
+   nPUmean = 0;
+   BunchXing = 0;
    PVCand_X = 0;
    PVCand_Y = 0;
    PVCand_Z = 0;

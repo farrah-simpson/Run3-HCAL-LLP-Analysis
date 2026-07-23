@@ -554,19 +554,28 @@ float DisplacedHcalJetAnalyzer::GetPileupWeight( const string &variation ){
 	else if (variation == "down" && it->second.down)
 		h = it->second.down;
 
-	float truePU = 0.0;
+	if( debug ) cout << "BunchXing->size() = " << BunchXing->size() << "  nPUmean->size() = " << nPUmean->size() << endl;
+
+	auto bx0 = std::find(BunchXing->begin(), BunchXing->end(), 0);
 	
-	for (size_t i = 0; i < BunchXing.size(); ++i) {
-		if (BunchXing[i] == 0) {
-			truePU = nPUmean[i];
-			break;
-		}
+	if (bx0 == BunchXing->end()) {
+		cout << "ERROR: no BX=0 entry!" << endl;
+		return 1.0;
 	}
 	
-	int bin = h->FindFixBin(truePU);
-	bin = std::max(1, std::min(bin, h->GetNbinsX()));
-	float weight = h->GetBinContent(bin);
+	size_t idx = std::distance(BunchXing->begin(), bx0);
+
+	float truePU = nPUmean->at(idx);
 	
+	int bin = h->FindFixBin(truePU);
+	float weight = h->GetBinContent(std::clamp(bin, 1, h->GetNbinsX()));
+
+	if( debug ) cout << "PUDEBUG variation=" << variation
+	 << " hist=" << h->GetName()
+	 << " truePU=" << truePU
+	 << " bin=" << bin
+	 << " weight=" << weight << endl;
+
 	return weight;
 }
 
