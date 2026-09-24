@@ -122,6 +122,7 @@ public :
    map<string,float>    tree_output_vars_float;  
    map<string,string>   tree_output_vars_string;
    map<string,vector<float>>  tree_output_vars_vec;
+   map<string,vector<bool>>  tree_output_vars_vec_bool;
 
    vector<string> jet_treenames;
    map<string,TTree*>   jet_tree_output;
@@ -503,18 +504,18 @@ public :
    vector<float>   *gLLP_ProdVtx_X;
    vector<float>   *gLLP_ProdVtx_Y;
    vector<float>   *gLLP_ProdVtx_Z;
-   vector<vector<<bool>> *jet_Tagged_L1;
-   vector<vector<<bool>> *jet_Tagged_Varied_L1;
-   vector<vector<<bool>> *jet_Tagged_HLT1a;
-   vector<vector<<bool>> *jet_Tagged_Varied_HLT1a;
-   vector<vector<<bool>> *jet_Tagged_HLT1b;
-   vector<vector<<bool>> *jet_Tagged_Varied_HLT1b;
-   vector<vector<<bool>> *jet_Tagged_HLT2;
-   vector<vector<<bool>> *jet_Tagged_Varied_HLT2;
-   vector<vector<<bool>> *jet_Tagged_HLT3a;
-   vector<vector<<bool>> *jet_Tagged_Varied_HLT3a;
-   vector<vector<<bool>> *jet_Tagged_HLT3b;
-   vector<vector<<bool>> *jet_Tagged_Varied_HLT3b;
+   vector<vector<bool>> *jet_Tagged_L1;
+   vector<vector<bool>> *jet_Tagged_Varied_L1;
+   vector<vector<bool>> *jet_Tagged_HLT1a;
+   vector<vector<bool>> *jet_Tagged_Varied_HLT1a;
+   vector<vector<bool>> *jet_Tagged_HLT1b;
+   vector<vector<bool>> *jet_Tagged_Varied_HLT1b;
+   vector<vector<bool>> *jet_Tagged_HLT2;
+   vector<vector<bool>> *jet_Tagged_Varied_HLT2;
+   vector<vector<bool>> *jet_Tagged_HLT3a;
+   vector<vector<bool>> *jet_Tagged_Varied_HLT3a;
+   vector<vector<bool>> *jet_Tagged_HLT3b;
+   vector<vector<bool>> *jet_Tagged_Varied_HLT3b;
 
 
    bool Flag_HBHENoiseFilter;

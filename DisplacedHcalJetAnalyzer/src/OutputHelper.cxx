@@ -79,6 +79,8 @@ void DisplacedHcalJetAnalyzer::DeclareOutputTrees(){
 
 	vector<string> myvars_vec = {};
 
+	vector<string> myvars_vec_bool = {};
+
 	vector<string> myvars_string = { "era" };
 
 	// Add Physics Variables //
@@ -101,6 +103,19 @@ void DisplacedHcalJetAnalyzer::DeclareOutputTrees(){
 		myvars_float.push_back( Form("jet%d_E", i) );
 		myvars_float.push_back( Form("jet%d_Mass", i) );
 		myvars_float.push_back( Form("jet%d_JetArea", i) );
+
+                myvars_vec_bool.push_back( Form("jet%d_Tagged_L1",i) );
+                myvars_vec_bool.push_back( Form("jet%d_Tagged_Varied_L1",i) ); 
+                myvars_vec_bool.push_back( Form("jet%d_Tagged_HLT1a",i) );
+                myvars_vec_bool.push_back( Form("jet%d_Tagged_Varied_HLT1a",i) );
+                myvars_vec_bool.push_back( Form("jet%d_Tagged_HLT1b",i) );
+                myvars_vec_bool.push_back( Form("jet%d_Tagged_Varied_HLT1b",i) );
+                myvars_vec_bool.push_back( Form("jet%d_Tagged_HLT2",i) );
+                myvars_vec_bool.push_back( Form("jet%d_Tagged_Varied_HLT2",i) );
+                myvars_vec_bool.push_back( Form("jet%d_Tagged_HLT3a",i) );
+                myvars_vec_bool.push_back( Form("jet%d_Tagged_Varied_HLT3a",i) );
+                myvars_vec_bool.push_back( Form("jet%d_Tagged_HLT3b",i) );
+                myvars_vec_bool.push_back( Form("jet%d_Tagged_Varied_HLT3b",i) );
 
 		// uncorrected and no JER (MC) jets
 		myvars_float.push_back( Form("jet%dRaw_E", i) );
@@ -342,6 +357,9 @@ void DisplacedHcalJetAnalyzer::DeclareOutputTrees(){
 		for( auto var: myvars_vec )
 			tree_output[treename]->Branch( Form("%s",var.c_str()), &tree_output_vars_vec[var] );		
 
+		for( auto var: myvars_vec_bool )
+			tree_output[treename]->Branch( Form("%s",var.c_str()), &tree_output_vars_vec_bool[var] );		
+
 		for( auto var: myvars_string )
 			tree_output[treename]->Branch( Form("%s",var.c_str()), &tree_output_vars_string[var] );		
 
@@ -390,7 +408,7 @@ void DisplacedHcalJetAnalyzer::DeclareOutputJetTrees(){
 		"PV","jet","muon","ele","pho",
 	};
 
-	vector<string> myvars_float = {"eventHT", "randomFloat", "L1_prescale_weight", "HLT_prescale_weight", "event_HLT_HT_weight", "event_L1_HT_weight","puWeight", "puWeightUp", "puWeightDown"};
+	vector<string> myvars_float = {"eventHT", "randomFloat", "L1_prescale_weight", "HLT_prescale_weight", "puWeight", "puWeightUp", "puWeightDown"};
 
 	// Per-trigger L1 prescale values (float; -1 = branch absent)
 	for (int i = 0; i < (int)L1_Indices.size(); i++) {
@@ -520,6 +538,9 @@ void DisplacedHcalJetAnalyzer::ResetOutputBranches( string treename ){
 	for( const auto &pair : tree_output_vars_vec )
 		tree_output_vars_vec[pair.first].clear();	
 
+	for( const auto &pair : tree_output_vars_vec_bool )
+		tree_output_vars_vec_bool[pair.first].clear();
+
 	// Jet Trees //
 
 	for( const auto &pair : jet_tree_output_vars_int )
@@ -552,10 +573,13 @@ float DisplacedHcalJetAnalyzer::GetEventL1HTWeight( float HT ){
 	    2.102, 3.741, 1.746, 0.955, 0.922, 0.972, 0.989, 0.999,
 	    1, 1, 1
 	};
-	static const int N_L1 = sizeof(HT_L1/sizeof(double);
+	static const int N_L1 = sizeof(HT_L1)/sizeof(double);
 
         for (int b = 0; b < N_L1; ++b) {
             if (HT < HT_L1[b] || b == N_L1 - 1) {
+        	if (debug) cout << "[GetEventL1HTWeight]="
+                         << " HT=" << HT << " SF=" << weight << endl;
+
                 return SF_L1[b];
             }
         }
@@ -728,8 +752,8 @@ void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename, map<string, boo
 	tree_output_vars_float["eventHT"]   = EventHT();
 	tree_output_vars_float["weight"]	= weight; // from SetWeight() in WeightsHelper.cxx
 	tree_output_vars_float["lumi_frac"]	= lumi_frac; // from SetWeight() in WeightsHelper.cxx
-	tree_output_vars_float["event_HLT_HT_weight"] =  GetEventHLTHTWeight(EventHT());;
-	tree_output_vars_float["event_L1_HT_weight"] =  GetEventL1HTWeight(EventHT());;
+	tree_output_vars_float["event_HLT_HT_weight"] =  GetEventHLTHTWeight(tree_output_vars_float["eventHT"]);
+	tree_output_vars_float["event_L1_HT_weight"] =  GetEventL1HTWeight(tree_output_vars_float["eventHT"]);
 
 	for (int i = 0; i < HLT_Indices.size(); i++) {
 		tree_output_vars_bool[HLT_Names[i]] = HLT_Decision->at(i);
@@ -896,24 +920,26 @@ void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename, map<string, boo
 		tree_output_vars_float[Form("jet%d_Mass", valid_jet)] 	= jet_Mass->at(i);
 		tree_output_vars_float[Form("jet%d_JetArea", valid_jet)]= jet_JetArea->at(i);
 
-		tree_output_vars_float[Form("jet%d_Tagged_L1", valid_jet)] 	= jet_Tagged_L1->at(i);
-		tree_output_vars_float[Form("jet%d_Tagged_Varied_L1", valid_jet)] = jet_Tagged_Varied->at(i);
+		if (i <2) { 
+			// to improve
+			tree_output_vars_vec_bool[Form("jet%d_Tagged_L1", valid_jet)] 	= jet_Tagged_L1->at(i);
+			tree_output_vars_vec_bool[Form("jet%d_Tagged_Varied_L1", valid_jet)] = jet_Tagged_Varied_L1->at(i);
 
-		tree_output_vars_float[Form("jet%d_Tagged_HLT1a", valid_jet)]      = jet_Tagged_HLT1a->at(i);
-		tree_output_vars_float[Form("jet%d_Tagged_Varied_HLT1a", valid_jet)]  = jet_Tagged_Varied_HLT1a->at(i);
+			tree_output_vars_vec_bool[Form("jet%d_Tagged_HLT1a", valid_jet)]      = jet_Tagged_HLT1a->at(i);
+			tree_output_vars_vec_bool[Form("jet%d_Tagged_Varied_HLT1a", valid_jet)]  = jet_Tagged_Varied_HLT1a->at(i);
 
-		tree_output_vars_float[Form("jet%d_Tagged_HLT1b", valid_jet)]      = jet_Tagged_HLT1b->at(i);
-		tree_output_vars_float[Form("jet%d_Tagged_Varied_HLT1b", valid_jet)] = jet_Tagged_Varied_HLT1b->at(i);
+			tree_output_vars_vec_bool[Form("jet%d_Tagged_HLT1b", valid_jet)]      = jet_Tagged_HLT1b->at(i);
+			tree_output_vars_vec_bool[Form("jet%d_Tagged_Varied_HLT1b", valid_jet)] = jet_Tagged_Varied_HLT1b->at(i);
 
-		tree_output_vars_float[Form("jet%d_Tagged_HLT2", valid_jet)]      = jet_Tagged_HLT2->at(i);
-		tree_output_vars_float[Form("jet%d_Tagged_Varied_HLT2", valid_jet)] = jet_Tagged_Varied_HLT2->at(i);
+			tree_output_vars_vec_bool[Form("jet%d_Tagged_HLT2", valid_jet)]      = jet_Tagged_HLT2->at(i);
+			tree_output_vars_vec_bool[Form("jet%d_Tagged_Varied_HLT2", valid_jet)] = jet_Tagged_Varied_HLT2->at(i);
 
-		tree_output_vars_float[Form("jet%d_Tagged_HLT3a", valid_jet)]      = jet_Tagged_HLT3a->at(i);
-		tree_output_vars_float[Form("jet%d_Tagged_Varied_HLT3a", valid_jet)] = jet_Tagged_Varied_HLT3a->at(i);
+			tree_output_vars_vec_bool[Form("jet%d_Tagged_HLT3a", valid_jet)]      = jet_Tagged_HLT3a->at(i);
+			tree_output_vars_vec_bool[Form("jet%d_Tagged_Varied_HLT3a", valid_jet)] = jet_Tagged_Varied_HLT3a->at(i);
 
-		tree_output_vars_float[Form("jet%d_Tagged_HLT3b", valid_jet)]      = jet_Tagged_HLT3b->at(i);
-		tree_output_vars_float[Form("jet%d_Tagged_Varied_HLT3b", valid_jet)]      = jet_Tagged_Varied_HLT3b->at(i);
-
+			tree_output_vars_vec_bool[Form("jet%d_Tagged_HLT3b", valid_jet)]      = jet_Tagged_HLT3b->at(i);
+			tree_output_vars_vec_bool[Form("jet%d_Tagged_Varied_HLT3b", valid_jet)]      = jet_Tagged_Varied_HLT3b->at(i);
+		}
 		tree_output_vars_int[Form("jet%d_PileupE", valid_jet)] 		= jet_PileupE->at(i);
 		tree_output_vars_int[Form("jet%d_PileupIdFlag", valid_jet)] = jet_PileupIdFlag->at(i);
 		tree_output_vars_int[Form("jet%d_PileupId", valid_jet)] 	= jet_PileupId->at(i);
