@@ -69,7 +69,8 @@ void DisplacedHcalJetAnalyzer::DeclareOutputTrees(){
 		// with p=0.6505 keep) when that is the only analysis L1SingleLLPJet HLT (excluding
 		// DelayedJet40) that fired, else 1.
 		"HLT_prescale_weight",
-		"puWeight", "puWeightUp", "puWeightDown"
+		"puWeight", "puWeightUp", "puWeightDown",
+		"event_HLT_HT_weight", "event_L1_HT_weight",
 	};
 
 	for (int i = 0; i < (int)L1_Indices.size(); i++) {
@@ -389,7 +390,7 @@ void DisplacedHcalJetAnalyzer::DeclareOutputJetTrees(){
 		"PV","jet","muon","ele","pho",
 	};
 
-	vector<string> myvars_float = {"eventHT", "randomFloat", "L1_prescale_weight", "HLT_prescale_weight", "puWeight", "puWeightUp", "puWeightDown"};
+	vector<string> myvars_float = {"eventHT", "randomFloat", "L1_prescale_weight", "HLT_prescale_weight", "event_HLT_HT_weight", "event_L1_HT_weight","puWeight", "puWeightUp", "puWeightDown"};
 
 	// Per-trigger L1 prescale values (float; -1 = branch absent)
 	for (int i = 0; i < (int)L1_Indices.size(); i++) {
@@ -537,7 +538,111 @@ void DisplacedHcalJetAnalyzer::ResetOutputBranches( string treename ){
 		jet_tree_output_vars_vec[pair.first].clear();
 
 }
+/* ====================================================================================================================== */
+float DisplacedHcalJetAnalyzer::GetEventL1HTWeight( float HT ){
 
+	if( isData ) return 1.0;
+
+	static const double HT_L1[] = {
+	    75, 125, 175, 225, 275, 325, 375, 425,
+	    475, 525, 1252.5
+	};
+	
+	static const double SF_L1[] = {
+	    2.102, 3.741, 1.746, 0.955, 0.922, 0.972, 0.989, 0.999,
+	    1, 1, 1
+	};
+	static const int N_L1 = sizeof(HT_L1/sizeof(double);
+
+        for (int b = 0; b < N_L1; ++b) {
+            if (HT < HT_L1[b] || b == N_L1 - 1) {
+                return SF_L1[b];
+            }
+        }
+	if (debug) cout<<"WARNING: no event L1 HT weight returning 1.0"<<endl;
+	return 1.0;
+}
+/* ====================================================================================================================== */
+float DisplacedHcalJetAnalyzer::GetEventHLTHTWeight( float HT ){
+
+    if( isData ) return 1.0;
+
+    // ============================================================
+    // HT200 SF Inclusive1PtrkShortSig5 (also used for DisplacedTrack, ~equivalent to HT170)
+    // ============================================================
+    static const double HT_Inclusive1PtrkShortSig5[] = {
+        37.5, 52.5, 67.5, 82.5, 97.5, 112.5,
+        127.5, 142.5, 157.5, 172.5, 187.5, 202.5, 217.5,
+        232.5, 247.5, 262.5, 277.5, 292.5, 307.5, 322.5,
+        337.5, 352.5, 367.5, 1252.5
+    };
+    static const double SF_Inclusive1PtrkShortSig5[] = {
+        0.372, 0.656, 1.620, 2.520, 2.030, 2.380,
+        1.710, 1.710, 1.320, 0.995, 0.895, 0.877, 0.906,
+        0.942, 0.961, 0.976, 0.986, 0.992, 0.995, 0.997,
+        0.998, 0.999, 1.000, 1.000
+    };
+    static const int N_Inclusive1PtrkShortSig5 = sizeof(HT_Inclusive1PtrkShortSig5)/sizeof(double);
+
+    // ============================================================
+    // HT320 SF Inclusive
+    // ============================================================
+    static const double HT_Inclusive[] = {
+        37.5, 82.5, 97.5, 112.5, 127.5, 142.5, 157.5, 172.5,
+        187.5, 202.5, 217.5, 232.5, 247.5, 262.5, 277.5, 292.5,
+        307.5, 322.5, 337.5, 352.5, 367.5, 382.5, 397.5, 412.5,
+        427.5, 442.5, 457.5, 472.5, 487.5, 1252.5
+    };
+    static const double SF_Inclusive[] = {
+        0.0254, 0.900, 0.845, 3.970, 0.601, 1.070, 0.492, 0.414,
+        0.586, 0.433, 0.321, 0.373, 0.310, 0.352, 0.366, 0.351,
+        0.396, 0.457, 0.562, 0.673, 0.775, 0.852, 0.911, 0.944,
+        0.966, 0.983, 0.990, 0.994, 0.996, 1.000
+    };
+    static const int N_Inclusive = sizeof(HT_Inclusive)/sizeof(double);
+
+    for (int i = 0; i < (int)HLT_Names.size(); i++) {
+
+        if (HLT_Names[i].find("L1SingleLLPJet") == string::npos) continue;
+        if (HLT_Names[i] == "HLT_L1SingleLLPJet") continue;
+        if (i >= (int)HLT_Decision->size() || !HLT_Decision->at(i)) continue;
+
+        const double* binEdges;
+        const double* sfVals;
+        int nBins;
+
+        if (HLT_Names[i].find("Inclusive1PtrkShortSig5") != string::npos) {
+            binEdges = HT_Inclusive1PtrkShortSig5;
+            sfVals   = SF_Inclusive1PtrkShortSig5;
+            nBins    = N_Inclusive1PtrkShortSig5;
+        } else if (HLT_Names[i].find("DisplacedTrack") != string::npos) {
+            binEdges = HT_Inclusive1PtrkShortSig5;  
+            sfVals   = SF_Inclusive1PtrkShortSig5;
+            nBins    = N_Inclusive1PtrkShortSig5;
+        } else if (HLT_Names[i].find("Inclusive") != string::npos) {
+            binEdges = HT_Inclusive;
+            sfVals   = SF_Inclusive;
+            nBins    = N_Inclusive;
+        } else {
+            continue;
+        }
+
+        float weight = 1.0;
+        for (int b = 0; b < nBins; ++b) {
+            if (HT < binEdges[b] || b == nBins - 1) {
+                weight = sfVals[b];
+                break;
+            }
+        }
+
+        if (debug) cout << "[GetEventHLTHTWeight] fired=" << HLT_Names[i]
+                         << " HT=" << HT << " SF=" << weight << endl;
+
+        return weight;
+    }
+
+    return 1.0;  // no qualifying path fired
+}
 /* ====================================================================================================================== */
 float DisplacedHcalJetAnalyzer::GetPileupWeight( const string &variation ){
 
@@ -623,7 +728,8 @@ void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename, map<string, boo
 	tree_output_vars_float["eventHT"]   = EventHT();
 	tree_output_vars_float["weight"]	= weight; // from SetWeight() in WeightsHelper.cxx
 	tree_output_vars_float["lumi_frac"]	= lumi_frac; // from SetWeight() in WeightsHelper.cxx
-	tree_output_vars_float["event_weight"]	= event_weight; 
+	tree_output_vars_float["event_HLT_HT_weight"] =  GetEventHLTHTWeight(EventHT());;
+	tree_output_vars_float["event_L1_HT_weight"] =  GetEventL1HTWeight(EventHT());;
 
 	for (int i = 0; i < HLT_Indices.size(); i++) {
 		tree_output_vars_bool[HLT_Names[i]] = HLT_Decision->at(i);
@@ -789,6 +895,24 @@ void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename, map<string, boo
 		tree_output_vars_float[Form("jet%d_E", valid_jet)] 		= jet_E->at(i);
 		tree_output_vars_float[Form("jet%d_Mass", valid_jet)] 	= jet_Mass->at(i);
 		tree_output_vars_float[Form("jet%d_JetArea", valid_jet)]= jet_JetArea->at(i);
+
+		tree_output_vars_float[Form("jet%d_Tagged_L1", valid_jet)] 	= jet_Tagged_L1->at(i);
+		tree_output_vars_float[Form("jet%d_Tagged_Varied_L1", valid_jet)] = jet_Tagged_Varied->at(i);
+
+		tree_output_vars_float[Form("jet%d_Tagged_HLT1a", valid_jet)]      = jet_Tagged_HLT1a->at(i);
+		tree_output_vars_float[Form("jet%d_Tagged_Varied_HLT1a", valid_jet)]  = jet_Tagged_Varied_HLT1a->at(i);
+
+		tree_output_vars_float[Form("jet%d_Tagged_HLT1b", valid_jet)]      = jet_Tagged_HLT1b->at(i);
+		tree_output_vars_float[Form("jet%d_Tagged_Varied_HLT1b", valid_jet)] = jet_Tagged_Varied_HLT1b->at(i);
+
+		tree_output_vars_float[Form("jet%d_Tagged_HLT2", valid_jet)]      = jet_Tagged_HLT2->at(i);
+		tree_output_vars_float[Form("jet%d_Tagged_Varied_HLT2", valid_jet)] = jet_Tagged_Varied_HLT2->at(i);
+
+		tree_output_vars_float[Form("jet%d_Tagged_HLT3a", valid_jet)]      = jet_Tagged_HLT3a->at(i);
+		tree_output_vars_float[Form("jet%d_Tagged_Varied_HLT3a", valid_jet)] = jet_Tagged_Varied_HLT3a->at(i);
+
+		tree_output_vars_float[Form("jet%d_Tagged_HLT3b", valid_jet)]      = jet_Tagged_HLT3b->at(i);
+		tree_output_vars_float[Form("jet%d_Tagged_Varied_HLT3b", valid_jet)]      = jet_Tagged_Varied_HLT3b->at(i);
 
 		tree_output_vars_int[Form("jet%d_PileupE", valid_jet)] 		= jet_PileupE->at(i);
 		tree_output_vars_int[Form("jet%d_PileupIdFlag", valid_jet)] = jet_PileupIdFlag->at(i);

@@ -503,7 +503,20 @@ public :
    vector<float>   *gLLP_ProdVtx_X;
    vector<float>   *gLLP_ProdVtx_Y;
    vector<float>   *gLLP_ProdVtx_Z;
-   vector<double>   *HLT_SF_Tot;
+   vector<vector<<bool>> *jet_Tagged_L1;
+   vector<vector<<bool>> *jet_Tagged_Varied_L1;
+   vector<vector<<bool>> *jet_Tagged_HLT1a;
+   vector<vector<<bool>> *jet_Tagged_Varied_HLT1a;
+   vector<vector<<bool>> *jet_Tagged_HLT1b;
+   vector<vector<<bool>> *jet_Tagged_Varied_HLT1b;
+   vector<vector<<bool>> *jet_Tagged_HLT2;
+   vector<vector<<bool>> *jet_Tagged_Varied_HLT2;
+   vector<vector<<bool>> *jet_Tagged_HLT3a;
+   vector<vector<<bool>> *jet_Tagged_Varied_HLT3a;
+   vector<vector<<bool>> *jet_Tagged_HLT3b;
+   vector<vector<<bool>> *jet_Tagged_Varied_HLT3b;
+
+
    bool Flag_HBHENoiseFilter;
    bool Flag_HBHENoiseIsoFilter;
    bool Flag_CSCTightHaloFilter;
@@ -898,7 +911,18 @@ public :
    TBranch        *b_Flag_trkPOG_toomanystripclus53X;   //!
    TBranch        *b_Flag_trkPOG_logErrorTooManyClusters;   //!
    TBranch        *b_Flag_METFilters_2022_2023_PromptReco;   //!
-   TBranch        *b_HLT_SF_Tot;   //!
+   TBranch        *b_jet_Tagged_L1;   //!
+   TBranch        *b_jet_Tagged_Varied_L1;   //!
+   TBranch        *b_jet_Tagged_HLT1a;   //!
+   TBranch        *b_jet_Tagged_Varied_HLT1a;   //!
+   TBranch        *b_jet_Tagged_HLT1b;   //!
+   TBranch        *b_jet_Tagged_Varied_HLT1b;   //!
+   TBranch        *b_jet_Tagged_HLT2;   //!
+   TBranch        *b_jet_Tagged_Varied_HLT2;   //!
+   TBranch        *b_jet_Tagged_HLT3a;   //!
+   TBranch        *b_jet_Tagged_Varied_HLT3a;   //!
+   TBranch        *b_jet_Tagged_HLT3b;   //!
+   TBranch        *b_jet_Tagged_Varied_HLT3b;   //! 
 
    DisplacedHcalJetAnalyzer(TTree *tree=0);
    virtual ~DisplacedHcalJetAnalyzer();
@@ -987,6 +1011,8 @@ public :
    virtual void   DeclareOutputTrees();
    virtual void   DeclareOutputJetTrees();
    virtual void   ResetOutputBranches( string treename );
+   float GetEventL1HTWeight(float HT);
+   float GetEventHLTHTWeight(float HT);
    virtual vector<pair<float,float>> TrackMatcher( int jetIndex, vector<uint> jet_track_index );
    virtual void   FillOutputTrees( string treename, map<string, bool> Pass_EventSelections = {} );
    virtual void   FillOutputJetTrees( string treename, int jetIndex, map<string, bool> Pass_EventSelections = {} );
@@ -1387,7 +1413,18 @@ void DisplacedHcalJetAnalyzer::Init(TTree *tree)
    Flag_trkPOG_toomanystripclus53X = 0;
    Flag_trkPOG_logErrorTooManyClusters = 0;
    Flag_METFilters_2022_2023_PromptReco = 0;
-   HLT_SF_Tot=0;
+   jet_Tagged_L1 = 0;
+   jet_Tagged_Varied_L1 = 0;
+   jet_Tagged_HLT1a = 0;
+   jet_Tagged_Varied_HLT1a = 0;
+   jet_Tagged_HLT1b = 0;
+   jet_Tagged_Varied_HLT1b = 0;
+   jet_Tagged_HLT2 = 0;
+   jet_Tagged_Varied_HLT2 = 0;
+   jet_Tagged_HLT3a = 0;
+   jet_Tagged_Varied_HLT3a = 0;
+   jet_Tagged_HLT3b = 0;
+   jet_Tagged_Varied_HLT3b = 0;
 
    // Set branch addresses and branch pointers
    if (!tree) return;
@@ -1766,7 +1803,23 @@ void DisplacedHcalJetAnalyzer::Init(TTree *tree)
    fChain->SetBranchAddress("Flag_trkPOG_toomanystripclus53X", &Flag_trkPOG_toomanystripclus53X, &b_Flag_trkPOG_toomanystripclus53X);
    fChain->SetBranchAddress("Flag_trkPOG_logErrorTooManyClusters", &Flag_trkPOG_logErrorTooManyClusters, &b_Flag_trkPOG_logErrorTooManyClusters);
    fChain->SetBranchAddress("Flag_METFilters_2022_2023_PromptReco", &Flag_METFilters_2022_2023_PromptReco, &b_Flag_METFilters_2022_2023_PromptReco);
-   fChain->SetBranchAddress("HLT_SF_Tot", &HLT_SF_Tot, &b_HLT_SF_Tot);
+   fChain->SetBranchAddress("jet_Tagged_L1", &jet_Tagged_L1, &b_jet_Tagged_L1);
+   fChain->SetBranchAddress("jet_Tagged_Varied_L1", &jet_Tagged_Varied_L1, &b_jet_Tagged_Varied_L1);
+   fChain->SetBranchAddress("jet_Tagged_HLT1a", &jet_Tagged_HLT1a, &b_jet_Tagged_HLT1a);
+   fChain->SetBranchAddress("jet_Tagged_Varied_HLT1a", &jet_Tagged_Varied_HLT1a, &b_jet_Tagged_Varied_HLT1a);
+   fChain->SetBranchAddress("jet_Tagged_HLT1a", &jet_Tagged_HLT1a, &b_jet_Tagged_HLT1a);
+   fChain->SetBranchAddress("jet_Tagged_Varied_HLT1a", &jet_Tagged_Varied_HLT1a, &b_jet_Tagged_Varied_HLT1a);
+   fChain->SetBranchAddress("jet_Tagged_HLT1b", &jet_Tagged_HLT1b, &b_jet_Tagged_HLT1b);
+   fChain->SetBranchAddress("jet_Tagged_Varied_HLT1b", &jet_Tagged_Varied_HLT1b, &b_jet_Tagged_Varied_HLT1b);
+   fChain->SetBranchAddress("jet_Tagged_HLT2", &jet_Tagged_HLT2, &b_jet_Tagged_HLT2);
+   fChain->SetBranchAddress("jet_Tagged_Varied_HLT2", &jet_Tagged_Varied_HLT2, &b_jet_Tagged_Varied_HLT2);
+   fChain->SetBranchAddress("jet_Tagged_HLT3a", &jet_Tagged_HLT3a, &b_jet_Tagged_HLT3a);
+   fChain->SetBranchAddress("jet_Tagged_Varied_HLT3a", &jet_Tagged_Varied_HLT3a, &b_jet_Tagged_Varied_HLT3a);
+   fChain->SetBranchAddress("jet_Tagged_HLT3b", &jet_Tagged_HLT3b, &b_jet_Tagged_HLT3b);
+   fChain->SetBranchAddress("jet_Tagged_Varied_HLT3b", &jet_Tagged_Varied_HLT3b, &b_jet_Tagged_Varied_HLT3b);
+
+
+
 
    Notify();
 }
