@@ -86,6 +86,7 @@ public :
 
    // Random number generator
    TRandom3 *randomGenerator = new TRandom3();
+   TRandom3 rand_;
 
    // jet veto mask
    TH2F* maskMap_ = nullptr;
@@ -1014,6 +1015,8 @@ public :
    virtual void   ResetOutputBranches( string treename );
    float GetEventL1HTWeight(float HT);
    float GetEventHLTHTWeight(float HT);
+   float ComputeTagSF(float eData, float eQCD);
+   bool applySF(bool isTagged, float eData, float eQCD);
    virtual vector<pair<float,float>> TrackMatcher( int jetIndex, vector<uint> jet_track_index );
    virtual void   FillOutputTrees( string treename, map<string, bool> Pass_EventSelections = {} );
    virtual void   FillOutputJetTrees( string treename, int jetIndex, map<string, bool> Pass_EventSelections = {} );

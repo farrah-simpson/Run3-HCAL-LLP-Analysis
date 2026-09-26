@@ -19,6 +19,7 @@ import sys, os, argparse, time, errno
 import os.path
 
 import gc
+import awkward as ak
 
 perJet = False
 num_jets = 1 if perJet else 4 # in v3.13 only 4 jets are saved! In earlier versions, 6 jets are saved
@@ -309,6 +310,8 @@ class Runner:
                     # check if this is a string like "era"
                     if len(arr) > 0 and isinstance(arr[0], str):
                         arr = arr.astype("U") # preserve root string branch
+                    elif "_Tagged_" in col or col.endswith("_Tagged"):
+                        pass
                     else:
                         arr = pd.to_numeric(arr, errors="coerce").astype("float32")
 
@@ -323,6 +326,8 @@ class Runner:
                 for k, v in output_dict.items():
                     if isinstance(v[0], str):
                         branch_types[k] = "string"
+                    elif "_Tagged_" in k or k.endswith("_Tagged"):
+                        branch_types[k] = ak.Array(list(v)).type
                     else:
                         branch_types[k] = np.asarray(v).dtype
 

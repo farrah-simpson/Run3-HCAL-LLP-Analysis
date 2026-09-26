@@ -257,6 +257,7 @@ double DisplacedHcalJetAnalyzer::GetNEventsProduced(string infiletag){
 	return NEvents_produced;
 }
 
+/* ====================================================================================================================== */
 PileupWeightHists DisplacedHcalJetAnalyzer::LoadPileupWeights(const std::string& filename) {
 
     if (debug) cout << "DisplacedHcalJetAnalyzer::LoadPileupWeights()" << endl;

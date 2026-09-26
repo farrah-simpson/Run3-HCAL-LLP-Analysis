@@ -592,38 +592,62 @@ float DisplacedHcalJetAnalyzer::GetEventHLTHTWeight( float HT ){
     if( isData ) return 1.0;
 
     // ============================================================
-    // HT200 SF Inclusive1PtrkShortSig5 (also used for DisplacedTrack, ~equivalent to HT170)
+    // HT170 SF DisplacedTrack
+    // ============================================================
+     static const double HT_DisplacedTrack[] = {
+	7.5, 37.5, 52.5, 67.5, 82.5, 97.5, 112.5, 127.5,
+	142.5, 157.5, 172.5, 187.5, 202.5, 217.5, 232.5, 247.5,
+	262.5, 277.5, 292.5, 307.5, 322.5, 337.5, 352.5, 367.5,
+	382.5, 397.5, 412.5, 1252.5
+     };
+	
+     static const double SF_DisplacedTrack[] = {
+	0.103, 0.35, 0.616, 1.252, 1.621, 1.44, 1.57, 1.453,
+	1.103, 0.975, 0.952, 0.974, 0.989, 0.991, 0.992, 0.996,
+	0.999, 0.999, 0.999, 1, 0.999, 1, 1, 1,
+	1, 1.001, 1, 1
+    };
+	
+    static const int N_DisplacedTrack = 28;
+
+
+    // ============================================================
+    // HT240 SF Inclusive1PtrkShortSig5  maybe use 200?
     // ============================================================
     static const double HT_Inclusive1PtrkShortSig5[] = {
         37.5, 52.5, 67.5, 82.5, 97.5, 112.5,
         127.5, 142.5, 157.5, 172.5, 187.5, 202.5, 217.5,
         232.5, 247.5, 262.5, 277.5, 292.5, 307.5, 322.5,
-        337.5, 352.5, 367.5, 1252.5
+        337.5, 352.5, 367.5, 382.5, 397.5, 1252.5
     };
     static const double SF_Inclusive1PtrkShortSig5[] = {
-        0.372, 0.656, 1.620, 2.520, 2.030, 2.380,
-        1.710, 1.710, 1.320, 0.995, 0.895, 0.877, 0.906,
-        0.942, 0.961, 0.976, 0.986, 0.992, 0.995, 0.997,
-        0.998, 0.999, 1.000, 1.000
+	0.261, 0.836, 1.167, 2.83, 1.571, 2.149, 1.693, 1.773,
+    	1.067, 0.92, 0.732, 0.612, 0.512, 0.545, 0.624, 0.739,
+	0.829, 0.893, 0.937, 0.962, 0.98, 0.988, 0.994, 0.996,
+	0.999, 1
     };
-    static const int N_Inclusive1PtrkShortSig5 = sizeof(HT_Inclusive1PtrkShortSig5)/sizeof(double);
+    static const int N_Inclusive1PtrkShortSig5 = 26;
 
     // ============================================================
     // HT320 SF Inclusive
     // ============================================================
+
     static const double HT_Inclusive[] = {
         37.5, 82.5, 97.5, 112.5, 127.5, 142.5, 157.5, 172.5,
         187.5, 202.5, 217.5, 232.5, 247.5, 262.5, 277.5, 292.5,
         307.5, 322.5, 337.5, 352.5, 367.5, 382.5, 397.5, 412.5,
-        427.5, 442.5, 457.5, 472.5, 487.5, 1252.5
+        427.5, 442.5, 457.5, 472.5, 487.5, 502.5, 1252.5
     };
+    
     static const double SF_Inclusive[] = {
-        0.0254, 0.900, 0.845, 3.970, 0.601, 1.070, 0.492, 0.414,
-        0.586, 0.433, 0.321, 0.373, 0.310, 0.352, 0.366, 0.351,
-        0.396, 0.457, 0.562, 0.673, 0.775, 0.852, 0.911, 0.944,
-        0.966, 0.983, 0.990, 0.994, 0.996, 1.000
+        0.024, 0.867, 0.804, 3.795, 0.569, 1.168, 0.537, 0.421,
+        0.542, 0.443, 0.318, 0.353, 0.308, 0.362, 0.372, 0.353,
+        0.396, 0.457, 0.564, 0.672, 0.774, 0.852, 0.91, 0.945,
+        0.966, 0.982, 0.99, 0.994, 0.996, 0.998, 1
     };
-    static const int N_Inclusive = sizeof(HT_Inclusive)/sizeof(double);
+    
+    static const int N_Inclusive = 31;
+
 
     for (int i = 0; i < (int)HLT_Names.size(); i++) {
 
@@ -640,9 +664,9 @@ float DisplacedHcalJetAnalyzer::GetEventHLTHTWeight( float HT ){
             sfVals   = SF_Inclusive1PtrkShortSig5;
             nBins    = N_Inclusive1PtrkShortSig5;
         } else if (HLT_Names[i].find("DisplacedTrack") != string::npos) {
-            binEdges = HT_Inclusive1PtrkShortSig5;  
-            sfVals   = SF_Inclusive1PtrkShortSig5;
-            nBins    = N_Inclusive1PtrkShortSig5;
+            binEdges = HT_DisplacedTrack;  
+            sfVals   = SF_DisplacedTrack;
+            nBins    = N_DisplacedTrack;
         } else if (HLT_Names[i].find("Inclusive") != string::npos) {
             binEdges = HT_Inclusive;
             sfVals   = SF_Inclusive;
@@ -920,26 +944,24 @@ void DisplacedHcalJetAnalyzer::FillOutputTrees( string treename, map<string, boo
 		tree_output_vars_float[Form("jet%d_Mass", valid_jet)] 	= jet_Mass->at(i);
 		tree_output_vars_float[Form("jet%d_JetArea", valid_jet)]= jet_JetArea->at(i);
 
-		if (i <2) { 
-			// to improve
-			tree_output_vars_vec_bool[Form("jet%d_Tagged_L1", valid_jet)] 	= jet_Tagged_L1->at(i);
-			tree_output_vars_vec_bool[Form("jet%d_Tagged_Varied_L1", valid_jet)] = jet_Tagged_Varied_L1->at(i);
+		tree_output_vars_vec_bool[Form("jet%d_Tagged_L1", valid_jet)] 	= jet_Tagged_L1->at(i);
+		tree_output_vars_vec_bool[Form("jet%d_Tagged_Varied_L1", valid_jet)] = jet_Tagged_Varied_L1->at(i);
 
-			tree_output_vars_vec_bool[Form("jet%d_Tagged_HLT1a", valid_jet)]      = jet_Tagged_HLT1a->at(i);
-			tree_output_vars_vec_bool[Form("jet%d_Tagged_Varied_HLT1a", valid_jet)]  = jet_Tagged_Varied_HLT1a->at(i);
+		tree_output_vars_vec_bool[Form("jet%d_Tagged_HLT1a", valid_jet)]      = jet_Tagged_HLT1a->at(i);
+		tree_output_vars_vec_bool[Form("jet%d_Tagged_Varied_HLT1a", valid_jet)]  = jet_Tagged_Varied_HLT1a->at(i);
 
-			tree_output_vars_vec_bool[Form("jet%d_Tagged_HLT1b", valid_jet)]      = jet_Tagged_HLT1b->at(i);
-			tree_output_vars_vec_bool[Form("jet%d_Tagged_Varied_HLT1b", valid_jet)] = jet_Tagged_Varied_HLT1b->at(i);
+		tree_output_vars_vec_bool[Form("jet%d_Tagged_HLT1b", valid_jet)]      = jet_Tagged_HLT1b->at(i);
+		tree_output_vars_vec_bool[Form("jet%d_Tagged_Varied_HLT1b", valid_jet)] = jet_Tagged_Varied_HLT1b->at(i);
 
-			tree_output_vars_vec_bool[Form("jet%d_Tagged_HLT2", valid_jet)]      = jet_Tagged_HLT2->at(i);
-			tree_output_vars_vec_bool[Form("jet%d_Tagged_Varied_HLT2", valid_jet)] = jet_Tagged_Varied_HLT2->at(i);
+		tree_output_vars_vec_bool[Form("jet%d_Tagged_HLT2", valid_jet)]      = jet_Tagged_HLT2->at(i);
+		tree_output_vars_vec_bool[Form("jet%d_Tagged_Varied_HLT2", valid_jet)] = jet_Tagged_Varied_HLT2->at(i);
 
-			tree_output_vars_vec_bool[Form("jet%d_Tagged_HLT3a", valid_jet)]      = jet_Tagged_HLT3a->at(i);
-			tree_output_vars_vec_bool[Form("jet%d_Tagged_Varied_HLT3a", valid_jet)] = jet_Tagged_Varied_HLT3a->at(i);
+		tree_output_vars_vec_bool[Form("jet%d_Tagged_HLT3a", valid_jet)]      = jet_Tagged_HLT3a->at(i);
+		tree_output_vars_vec_bool[Form("jet%d_Tagged_Varied_HLT3a", valid_jet)] = jet_Tagged_Varied_HLT3a->at(i);
 
-			tree_output_vars_vec_bool[Form("jet%d_Tagged_HLT3b", valid_jet)]      = jet_Tagged_HLT3b->at(i);
-			tree_output_vars_vec_bool[Form("jet%d_Tagged_Varied_HLT3b", valid_jet)]      = jet_Tagged_Varied_HLT3b->at(i);
-		}
+		tree_output_vars_vec_bool[Form("jet%d_Tagged_HLT3b", valid_jet)]      = jet_Tagged_HLT3b->at(i);
+		tree_output_vars_vec_bool[Form("jet%d_Tagged_Varied_HLT3b", valid_jet)]      = jet_Tagged_Varied_HLT3b->at(i);
+		
 		tree_output_vars_int[Form("jet%d_PileupE", valid_jet)] 		= jet_PileupE->at(i);
 		tree_output_vars_int[Form("jet%d_PileupIdFlag", valid_jet)] = jet_PileupIdFlag->at(i);
 		tree_output_vars_int[Form("jet%d_PileupId", valid_jet)] 	= jet_PileupId->at(i);
